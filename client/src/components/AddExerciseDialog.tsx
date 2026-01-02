@@ -17,6 +17,7 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
+  DrawerFooter,
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -51,7 +52,14 @@ function useIsMobile() {
   return isMobile;
 }
 
-function ExerciseForm({ onSubmit, isPending }: { onSubmit: (data: FormValues) => void; isPending: boolean }) {
+interface ExerciseFormProps {
+  onSubmit: (data: FormValues) => void;
+  isPending: boolean;
+  isMobile?: boolean;
+  formRef?: React.RefObject<HTMLFormElement>;
+}
+
+function ExerciseForm({ onSubmit, isPending, isMobile = false, formRef }: ExerciseFormProps) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -71,7 +79,7 @@ function ExerciseForm({ onSubmit, isPending }: { onSubmit: (data: FormValues) =>
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form ref={formRef} onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control}
           name="name"
@@ -139,9 +147,11 @@ function ExerciseForm({ onSubmit, isPending }: { onSubmit: (data: FormValues) =>
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full" disabled={isPending} data-testid="button-submit-exercise">
-          {isPending ? "Adding..." : "Add Exercise"}
-        </Button>
+        {!isMobile && (
+          <Button type="submit" className="w-full" disabled={isPending} data-testid="button-submit-exercise">
+            {isPending ? "Adding..." : "Add Exercise"}
+          </Button>
+        )}
       </form>
     </Form>
   );
@@ -178,13 +188,29 @@ export function AddExerciseDialog({ dayId, workoutId }: AddExerciseDialogProps) 
         <DrawerTrigger asChild>
           {triggerButton}
         </DrawerTrigger>
-        <DrawerContent className="max-h-[90vh] flex flex-col">
+        <DrawerContent className="max-h-[85vh] flex flex-col">
           <DrawerHeader className="flex-shrink-0">
             <DrawerTitle>Add Exercise</DrawerTitle>
           </DrawerHeader>
-          <div className="flex-1 overflow-y-auto p-4 pb-[env(safe-area-inset-bottom,2rem)]">
-            <ExerciseForm onSubmit={onSubmit} isPending={createExercise.isPending} />
+          <div className="flex-1 overflow-y-auto px-4 pb-4">
+            <ExerciseForm onSubmit={onSubmit} isPending={createExercise.isPending} isMobile={true} />
           </div>
+          <DrawerFooter className="flex-shrink-0 border-t bg-background pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+            <Button 
+              type="button" 
+              className="w-full" 
+              disabled={createExercise.isPending}
+              onClick={() => {
+                const form = document.querySelector('[data-testid="input-exercise-name"]')?.closest('form');
+                if (form) {
+                  form.requestSubmit();
+                }
+              }}
+              data-testid="button-submit-exercise-mobile"
+            >
+              {createExercise.isPending ? "Adding..." : "Add Exercise"}
+            </Button>
+          </DrawerFooter>
         </DrawerContent>
       </Drawer>
     );
