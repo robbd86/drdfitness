@@ -172,11 +172,11 @@ export function AddExerciseDialog({ dayId, workoutId }: AddExerciseDialogProps) 
         <DrawerTrigger asChild>
           {triggerButton}
         </DrawerTrigger>
-        <DrawerContent>
-          <DrawerHeader>
+        <DrawerContent className="max-h-[90vh] flex flex-col">
+          <DrawerHeader className="flex-shrink-0">
             <DrawerTitle>Add Exercise</DrawerTitle>
           </DrawerHeader>
-          <div className="p-4 pb-8">
+          <div className="flex-1 overflow-y-auto p-4 pb-8">
             <ExerciseForm onSubmit={onSubmit} isPending={createExercise.isPending} />
           </div>
         </DrawerContent>
@@ -189,11 +189,13 @@ export function AddExerciseDialog({ dayId, workoutId }: AddExerciseDialogProps) 
       <DialogTrigger asChild>
         {triggerButton}
       </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
+      <DialogContent className="max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>Add Exercise</DialogTitle>
         </DialogHeader>
-        <ExerciseForm onSubmit={onSubmit} isPending={createExercise.isPending} />
+        <div className="flex-1 overflow-y-auto">
+          <ExerciseForm onSubmit={onSubmit} isPending={createExercise.isPending} />
+        </div>
       </DialogContent>
     </Dialog>
   );
