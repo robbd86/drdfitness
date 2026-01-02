@@ -74,9 +74,24 @@ function ExerciseForm({ onSubmit, isPending, isMobile = false, formRef }: Exerci
   });
 
   const handleFocus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setTimeout(() => {
-      e.target.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 300);
+    const target = e.target;
+    
+    const scrollToInput = () => {
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+    };
+    
+    // Initial scroll after keyboard animation starts
+    setTimeout(scrollToInput, 100);
+    // Second scroll after keyboard is likely fully open
+    setTimeout(scrollToInput, 400);
+    
+    // Use Visual Viewport API if available for more reliable positioning
+    if (window.visualViewport) {
+      const handleResize = () => {
+        setTimeout(scrollToInput, 50);
+      };
+      window.visualViewport.addEventListener('resize', handleResize, { once: true });
+    }
   };
 
   return (
