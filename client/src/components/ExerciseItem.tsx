@@ -54,6 +54,13 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
     updateExercise.mutate({ id: exercise.id, workoutId, setData: newData });
   };
 
+  const handleRepsAdjust = (setIndex: number, delta: number) => {
+    const newData = [...(exercise.setData || [])];
+    if (!newData[setIndex]) return;
+    newData[setIndex].reps = Math.max(1, (newData[setIndex].reps || 1) + delta);
+    updateExercise.mutate({ id: exercise.id, workoutId, setData: newData });
+  };
+
   const toggleSetComplete = (setIndex: number) => {
     const newData = [...(exercise.setData || [])];
     if (!newData[setIndex]) return;
@@ -168,40 +175,64 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
               <div 
                 key={idx} 
                 className={cn(
-                  "flex items-center justify-between p-2 rounded-lg transition-colors",
+                  "flex items-center justify-between p-2 rounded-lg transition-colors gap-2",
                   set.completed ? "bg-primary/5" : "bg-secondary/20"
                 )}
               >
-                <div className="flex items-center gap-3">
-                  <span className="font-mono text-sm font-bold text-muted-foreground w-6">#{idx + 1}</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-sm font-bold text-muted-foreground w-5">#{idx + 1}</span>
                   <Checkbox 
                     checked={set.completed} 
                     onCheckedChange={() => toggleSetComplete(idx)}
                     className="h-4 w-4"
                   />
-                  <span className={cn("text-sm font-medium", set.completed && "line-through text-muted-foreground")}>
-                    {set.reps} Reps
-                  </span>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   <Button 
                     variant="outline" 
                     size="icon" 
-                    className="h-7 w-7 rounded-full border-border/50"
-                    onClick={() => handleWeightAdjust(idx, -2.5)}
+                    className="h-6 w-6 rounded-full border-border/50"
+                    onClick={() => handleRepsAdjust(idx, -1)}
+                    data-testid={`button-reps-minus-${idx}`}
                   >
                     <Minus className="h-3 w-3" />
                   </Button>
-                  <div className="flex flex-col items-center min-w-[60px]">
-                    <span className="text-sm font-bold font-mono">{set.weight}</span>
-                    <span className="text-[10px] text-muted-foreground uppercase font-bold">KG</span>
+                  <div className="flex flex-col items-center min-w-[40px]">
+                    <span className={cn("text-sm font-bold font-mono", set.completed && "line-through text-muted-foreground")}>{set.reps}</span>
+                    <span className="text-[9px] text-muted-foreground uppercase font-bold">Reps</span>
                   </div>
                   <Button 
                     variant="outline" 
                     size="icon" 
-                    className="h-7 w-7 rounded-full border-border/50"
+                    className="h-6 w-6 rounded-full border-border/50"
+                    onClick={() => handleRepsAdjust(idx, 1)}
+                    data-testid={`button-reps-plus-${idx}`}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="h-6 w-6 rounded-full border-border/50"
+                    onClick={() => handleWeightAdjust(idx, -2.5)}
+                    data-testid={`button-weight-minus-${idx}`}
+                  >
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                  <div className="flex flex-col items-center min-w-[45px]">
+                    <span className="text-sm font-bold font-mono">{set.weight}</span>
+                    <span className="text-[9px] text-muted-foreground uppercase font-bold">KG</span>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="h-6 w-6 rounded-full border-border/50"
                     onClick={() => handleWeightAdjust(idx, 2.5)}
+                    data-testid={`button-weight-plus-${idx}`}
                   >
                     <Plus className="h-3 w-3" />
                   </Button>

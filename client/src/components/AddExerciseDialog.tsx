@@ -154,6 +154,7 @@ function ExerciseForm({
                   <FormControl>
                     <Input
                       type="number"
+                      step={fieldName === "weight" ? "0.5" : "1"}
                       {...field}
                       onFocus={handleFocus}
                     />

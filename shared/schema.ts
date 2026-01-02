@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -23,7 +23,7 @@ export const exercises = pgTable("exercises", {
   name: text("name").notNull(),
   sets: integer("sets").notNull().default(3),
   reps: integer("reps").notNull().default(10),
-  weight: integer("weight"),
+  weight: real("weight"),
   notes: text("notes"),
   order: integer("order").notNull().default(0),
   completed: boolean("completed").default(false),

@@ -42,7 +42,7 @@ export function EditExerciseDialog({ exercise, workoutId }: EditExerciseDialogPr
       name: exercise.name,
       sets: exercise.sets,
       reps: exercise.reps,
-      weight: exercise.weight,
+      weight: exercise.weight ?? undefined,
       notes: exercise.notes,
       completed: exercise.completed
     },
@@ -55,7 +55,7 @@ export function EditExerciseDialog({ exercise, workoutId }: EditExerciseDialogPr
         name: exercise.name,
         sets: exercise.sets,
         reps: exercise.reps,
-        weight: exercise.weight,
+        weight: exercise.weight ?? undefined,
         notes: exercise.notes,
         completed: exercise.completed
       });
@@ -134,7 +134,7 @@ export function EditExerciseDialog({ exercise, workoutId }: EditExerciseDialogPr
                   <FormItem>
                     <FormLabel>Kg</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} value={field.value || ''} />
+                      <Input type="number" step="0.5" {...field} value={field.value || ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
