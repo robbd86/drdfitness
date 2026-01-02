@@ -1,5 +1,5 @@
 // Cache version - increment on each deploy to force update
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const CACHE_NAME = `drd-fitness-${CACHE_VERSION}`;
 
 // Only cache the manifest, NOT the HTML (HTML should always be fresh)
