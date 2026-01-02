@@ -63,6 +63,12 @@ function ExerciseForm({ onSubmit, isPending }: { onSubmit: (data: FormValues) =>
     },
   });
 
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setTimeout(() => {
+      e.target.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 300);
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -73,7 +79,7 @@ function ExerciseForm({ onSubmit, isPending }: { onSubmit: (data: FormValues) =>
             <FormItem>
               <FormLabel>Exercise Name</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. Bench Press" {...field} data-testid="input-exercise-name" />
+                <Input placeholder="e.g. Bench Press" {...field} onFocus={handleFocus} data-testid="input-exercise-name" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -87,7 +93,7 @@ function ExerciseForm({ onSubmit, isPending }: { onSubmit: (data: FormValues) =>
               <FormItem>
                 <FormLabel>Sets</FormLabel>
                 <FormControl>
-                  <Input type="number" {...field} data-testid="input-sets" />
+                  <Input type="number" {...field} onFocus={handleFocus} data-testid="input-sets" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -100,7 +106,7 @@ function ExerciseForm({ onSubmit, isPending }: { onSubmit: (data: FormValues) =>
               <FormItem>
                 <FormLabel>Reps</FormLabel>
                 <FormControl>
-                  <Input type="number" {...field} data-testid="input-reps" />
+                  <Input type="number" {...field} onFocus={handleFocus} data-testid="input-reps" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -113,7 +119,7 @@ function ExerciseForm({ onSubmit, isPending }: { onSubmit: (data: FormValues) =>
               <FormItem>
                 <FormLabel>Kg</FormLabel>
                 <FormControl>
-                  <Input type="number" {...field} value={field.value || ''} data-testid="input-weight" />
+                  <Input type="number" {...field} value={field.value || ''} onFocus={handleFocus} data-testid="input-weight" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -127,7 +133,7 @@ function ExerciseForm({ onSubmit, isPending }: { onSubmit: (data: FormValues) =>
             <FormItem>
               <FormLabel>Notes (Optional)</FormLabel>
               <FormControl>
-                <Textarea placeholder="Drop set on last set..." {...field} value={field.value || ''} data-testid="input-notes" />
+                <Textarea placeholder="Drop set on last set..." {...field} value={field.value || ''} onFocus={handleFocus} data-testid="input-notes" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -176,7 +182,7 @@ export function AddExerciseDialog({ dayId, workoutId }: AddExerciseDialogProps) 
           <DrawerHeader className="flex-shrink-0">
             <DrawerTitle>Add Exercise</DrawerTitle>
           </DrawerHeader>
-          <div className="flex-1 overflow-y-auto p-4 pb-8">
+          <div className="flex-1 overflow-y-auto p-4 pb-[env(safe-area-inset-bottom,2rem)]">
             <ExerciseForm onSubmit={onSubmit} isPending={createExercise.isPending} />
           </div>
         </DrawerContent>
