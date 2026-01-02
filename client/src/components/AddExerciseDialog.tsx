@@ -198,7 +198,7 @@ export function AddExerciseDialog({ dayId, workoutId }: AddExerciseDialogProps) 
           <div className="flex-1 overflow-y-auto px-4 pb-4">
             <ExerciseForm onSubmit={onSubmit} isPending={createExercise.isPending} isMobile={true} />
           </div>
-          <DrawerFooter className="flex-shrink-0 border-t bg-background pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+          <DrawerFooter className="border-t bg-background">
             <Button 
               type="button" 
               className="w-full" 
