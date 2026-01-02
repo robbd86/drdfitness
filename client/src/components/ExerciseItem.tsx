@@ -8,10 +8,55 @@ import { useToast } from "@/hooks/use-toast";
 import { EditExerciseDialog } from "./EditExerciseDialog";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+
+interface EditableInputProps {
+  value: number;
+  onSave: (value: string) => void;
+  inputMode: "numeric" | "decimal";
+  className?: string;
+  testId: string;
+}
+
+function EditableInput({ value, onSave, inputMode, className, testId }: EditableInputProps) {
+  const [localValue, setLocalValue] = useState(String(value));
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (document.activeElement !== inputRef.current) {
+      setLocalValue(String(value));
+    }
+  }, [value]);
+
+  const handleBlur = () => {
+    if (localValue !== String(value)) {
+      onSave(localValue);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      inputRef.current?.blur();
+    }
+  };
+
+  return (
+    <input
+      ref={inputRef}
+      type="text"
+      inputMode={inputMode}
+      value={localValue}
+      onChange={(e) => setLocalValue(e.target.value)}
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+      className={className}
+      data-testid={testId}
+    />
+  );
+}
 
 interface ExerciseItemProps {
   exercise: Exercise;
@@ -193,29 +238,26 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
                 </div>
 
                 <div className="flex flex-col items-center">
-                  <input
-                    type="number"
-                    inputMode="numeric"
+                  <EditableInput
                     value={set.reps}
-                    onChange={(e) => handleRepsChange(idx, e.target.value)}
+                    onSave={(val) => handleRepsChange(idx, val)}
+                    inputMode="numeric"
                     className={cn(
                       "w-12 h-7 text-center text-sm font-bold font-mono bg-background border border-border/50 rounded",
                       set.completed && "line-through text-muted-foreground"
                     )}
-                    data-testid={`input-reps-${idx}`}
+                    testId={`input-reps-${idx}`}
                   />
                   <span className="text-[9px] text-muted-foreground uppercase font-bold mt-0.5">Reps</span>
                 </div>
 
                 <div className="flex flex-col items-center">
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    step="any"
+                  <EditableInput
                     value={set.weight}
-                    onChange={(e) => handleWeightChange(idx, e.target.value)}
+                    onSave={(val) => handleWeightChange(idx, val)}
+                    inputMode="decimal"
                     className="w-16 h-7 text-center text-sm font-bold font-mono bg-background border border-border/50 rounded"
-                    data-testid={`input-weight-${idx}`}
+                    testId={`input-weight-${idx}`}
                   />
                   <span className="text-[9px] text-muted-foreground uppercase font-bold mt-0.5">KG</span>
                 </div>

@@ -148,7 +148,14 @@ export function EditExerciseDialog({ exercise, workoutId }: EditExerciseDialogPr
               <FormItem>
                 <FormLabel>Sets</FormLabel>
                 <FormControl>
-                  <Input type="number" {...field} data-testid="input-exercise-sets" />
+                  <Input 
+                    type="text" 
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    {...field} 
+                    value={field.value ?? ''} 
+                    data-testid="input-exercise-sets" 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -161,7 +168,14 @@ export function EditExerciseDialog({ exercise, workoutId }: EditExerciseDialogPr
               <FormItem>
                 <FormLabel>Reps</FormLabel>
                 <FormControl>
-                  <Input type="number" {...field} data-testid="input-exercise-reps" />
+                  <Input 
+                    type="text" 
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    {...field} 
+                    value={field.value ?? ''} 
+                    data-testid="input-exercise-reps" 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -175,11 +189,10 @@ export function EditExerciseDialog({ exercise, workoutId }: EditExerciseDialogPr
                 <FormLabel>Kg</FormLabel>
                 <FormControl>
                   <Input 
-                    type="number" 
-                    step="any" 
+                    type="text" 
                     inputMode="decimal"
                     {...field} 
-                    value={field.value || ''} 
+                    value={field.value ?? ''} 
                     data-testid="input-exercise-weight"
                   />
                 </FormControl>
