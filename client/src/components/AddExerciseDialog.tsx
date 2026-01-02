@@ -79,8 +79,8 @@ function useVisualViewportHeight() {
     window.visualViewport.addEventListener("scroll", update);
 
     return () => {
-      window.visualViewport.removeEventListener("resize", update);
-      window.visualViewport.removeEventListener("scroll", update);
+      window.visualViewport?.removeEventListener("resize", update);
+      window.visualViewport?.removeEventListener("scroll", update);
     };
   }, []);
 
@@ -172,7 +172,7 @@ function ExerciseForm({
             <FormItem>
               <FormLabel>Notes</FormLabel>
               <FormControl>
-                <Textarea {...field} onFocus={handleFocus} />
+                <Textarea {...field} value={field.value || ''} onFocus={handleFocus} />
               </FormControl>
             </FormItem>
           )}
@@ -216,7 +216,7 @@ export function AddExerciseDialog({
   };
 
   const triggerButton = (
-    <Button variant="ghost" size="sm" className="w-full mt-2">
+    <Button variant="ghost" size="sm" className="w-full mt-2" data-testid="button-add-exercise">
       <Plus className="mr-2 h-4 w-4" />
       Add Exercise
     </Button>
@@ -241,6 +241,7 @@ export function AddExerciseDialog({
                 size="icon"
                 variant="ghost"
                 onClick={() => setOpen(false)}
+                data-testid="button-close-modal"
               >
                 <X />
               </Button>

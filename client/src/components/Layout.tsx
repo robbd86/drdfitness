@@ -1,3 +1,20 @@
+import { type ReactNode } from "react";
+import { Link, useLocation } from "wouter";
+import { Dumbbell, Home, TrendingUp } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface NavItem {
+  path: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  coming?: boolean;
+}
+
+const navItems: NavItem[] = [
+  { path: "/", label: "Workouts", icon: Home },
+  { path: "/progress", label: "Progress", icon: TrendingUp, coming: true },
+];
+
 export function Layout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
 
