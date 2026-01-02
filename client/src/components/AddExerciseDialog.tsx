@@ -12,19 +12,10 @@ import {
   DialogTrigger,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-  DrawerFooter,
-  DrawerDescription,
-} from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 
@@ -225,38 +216,60 @@ export function AddExerciseDialog({ dayId, workoutId }: AddExerciseDialogProps) 
 
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={setOpen}>
-        <DrawerTrigger asChild>
+      <>
+        <div onClick={() => setOpen(true)}>
           {triggerButton}
-        </DrawerTrigger>
-        <DrawerContent 
-          className="flex flex-col overflow-hidden max-[480px]:!inset-0 max-[480px]:!top-0 max-[480px]:!bottom-0 max-[480px]:!h-[100dvh] max-[480px]:!max-h-[100dvh] max-[480px]:!rounded-none"
-        >
-          <DrawerHeader className="flex-shrink-0">
-            <DrawerTitle>Add Exercise</DrawerTitle>
-            <DrawerDescription className="sr-only">Fill in the exercise details below</DrawerDescription>
-          </DrawerHeader>
-          <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 overscroll-contain">
-            <ExerciseForm onSubmit={onSubmit} isPending={createExercise.isPending} isMobile={true} />
-          </div>
-          <DrawerFooter className="flex-shrink-0 border-t bg-background">
-            <Button 
-              type="button" 
-              className="w-full" 
-              disabled={createExercise.isPending}
-              onClick={() => {
-                const form = document.querySelector('[data-testid="input-exercise-name"]')?.closest('form');
-                if (form) {
-                  form.requestSubmit();
-                }
-              }}
-              data-testid="button-submit-exercise-mobile"
+        </div>
+        {open && (
+          <div 
+            className="fixed inset-0 z-50 flex flex-col bg-background"
+            style={{ 
+              height: '100dvh',
+              paddingTop: 'env(safe-area-inset-top)',
+              paddingBottom: 'env(safe-area-inset-bottom)'
+            }}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b flex-shrink-0">
+              <h2 className="text-lg font-semibold">Add Exercise</h2>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setOpen(false)}
+                data-testid="button-close-modal"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            
+            {/* Scrollable Body */}
+            <div className="flex-1 overflow-y-auto overscroll-contain p-4">
+              <ExerciseForm onSubmit={onSubmit} isPending={createExercise.isPending} isMobile={true} />
+            </div>
+            
+            {/* Fixed Footer */}
+            <div 
+              className="flex-shrink-0 border-t bg-background p-4"
+              style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
             >
-              {createExercise.isPending ? "Adding..." : "Add Exercise"}
-            </Button>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
+              <Button 
+                type="button" 
+                className="w-full" 
+                disabled={createExercise.isPending}
+                onClick={() => {
+                  const form = document.querySelector('[data-testid="input-exercise-name"]')?.closest('form');
+                  if (form) {
+                    form.requestSubmit();
+                  }
+                }}
+                data-testid="button-submit-exercise-mobile"
+              >
+                {createExercise.isPending ? "Adding..." : "Add Exercise"}
+              </Button>
+            </div>
+          </div>
+        )}
+      </>
     );
   }
 
