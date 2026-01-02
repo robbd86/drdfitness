@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Drawer,
@@ -18,6 +19,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
   DrawerFooter,
+  DrawerDescription,
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -191,6 +193,7 @@ export function AddExerciseDialog({ dayId, workoutId }: AddExerciseDialogProps) 
         <DrawerContent className="max-h-[85vh] flex flex-col">
           <DrawerHeader className="flex-shrink-0">
             <DrawerTitle>Add Exercise</DrawerTitle>
+            <DrawerDescription className="sr-only">Fill in the exercise details below</DrawerDescription>
           </DrawerHeader>
           <div className="flex-1 overflow-y-auto px-4 pb-4">
             <ExerciseForm onSubmit={onSubmit} isPending={createExercise.isPending} isMobile={true} />
@@ -224,6 +227,7 @@ export function AddExerciseDialog({ dayId, workoutId }: AddExerciseDialogProps) 
       <DialogContent className="max-h-[90vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle>Add Exercise</DialogTitle>
+          <DialogDescription className="sr-only">Fill in the exercise details below</DialogDescription>
         </DialogHeader>
         <div className="flex-1 overflow-y-auto">
           <ExerciseForm onSubmit={onSubmit} isPending={createExercise.isPending} />
