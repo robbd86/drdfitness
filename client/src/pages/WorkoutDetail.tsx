@@ -17,6 +17,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSo
 import { useState, useEffect } from "react";
 import { type Exercise } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export default function WorkoutDetail() {
   const [, params] = useRoute("/workout/:id");
