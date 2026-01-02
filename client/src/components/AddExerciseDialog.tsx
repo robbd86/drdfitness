@@ -190,7 +190,7 @@ export function AddExerciseDialog({ dayId, workoutId }: AddExerciseDialogProps) 
         <DrawerTrigger asChild>
           {triggerButton}
         </DrawerTrigger>
-        <DrawerContent className="max-h-[85vh] flex flex-col">
+        <DrawerContent className="flex flex-col">
           <DrawerHeader className="flex-shrink-0">
             <DrawerTitle>Add Exercise</DrawerTitle>
             <DrawerDescription className="sr-only">Fill in the exercise details below</DrawerDescription>
