@@ -180,33 +180,33 @@ export default function WorkoutDetail() {
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <div className="flex items-center justify-between mb-4 px-1 flex-wrap gap-2">
-                      <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex flex-col gap-3 mb-4 px-1">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
                         <Badge variant="outline" className="text-xs font-black uppercase tracking-widest border-primary/20 text-primary px-3">
                           {day.exercises.length} EXERCISES
                         </Badge>
-                        <RestTimer />
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="font-bold text-xs uppercase tracking-tighter h-8"
+                            onClick={() => handleDuplicateDay(day.id)}
+                          >
+                            <Copy className="w-3 h-3 mr-2" />
+                            <span className="hidden sm:inline">Duplicate</span>
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="font-bold text-xs uppercase tracking-tighter text-destructive h-8"
+                            onClick={() => handleDeleteDay(day.id)}
+                          >
+                            <Trash2 className="w-3 h-3 mr-2" />
+                            <span className="hidden sm:inline">Delete</span>
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="font-bold text-xs uppercase tracking-tighter h-8"
-                          onClick={() => handleDuplicateDay(day.id)}
-                        >
-                          <Copy className="w-3 h-3 mr-2" />
-                          Duplicate
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="font-bold text-xs uppercase tracking-tighter text-destructive h-8"
-                          onClick={() => handleDeleteDay(day.id)}
-                        >
-                          <Trash2 className="w-3 h-3 mr-2" />
-                          Delete
-                        </Button>
-                      </div>
+                      <RestTimer />
                     </div>
 
                     <div className="space-y-4">

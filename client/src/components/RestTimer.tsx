@@ -79,12 +79,12 @@ export function RestTimer() {
   }
 
   return (
-    <div className="flex items-center gap-2 p-2 bg-secondary/30 rounded-lg border border-border/50" data-testid="rest-timer">
-      <div className="flex items-center gap-2">
-        <div className="relative min-w-[52px]">
+    <div className="flex flex-wrap items-center gap-2 p-2 bg-secondary/30 rounded-lg border border-border/50" data-testid="rest-timer">
+      <div className="flex items-center gap-1">
+        <div className="relative min-w-[48px]">
           <div
             className={cn(
-              "text-lg font-mono font-bold tabular-nums transition-colors text-center",
+              "text-base font-mono font-bold tabular-nums transition-colors text-center",
               isComplete ? "text-green-500" : isRunning ? "text-primary" : "text-foreground"
             )}
             data-testid="timer-display"
@@ -108,41 +108,41 @@ export function RestTimer() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="h-7 w-7"
             onClick={handlePause}
             data-testid="button-pause"
           >
-            <Pause className="h-4 w-4" />
+            <Pause className="h-3.5 w-3.5" />
           </Button>
         ) : (
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="h-7 w-7"
             onClick={handleStart}
             data-testid="button-start"
           >
-            <Play className="h-4 w-4" />
+            <Play className="h-3.5 w-3.5" />
           </Button>
         )}
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8"
+          className="h-7 w-7"
           onClick={handleReset}
           data-testid="button-reset"
         >
-          <RotateCcw className="h-3.5 w-3.5" />
+          <RotateCcw className="h-3 w-3" />
         </Button>
       </div>
 
-      <div className="flex items-center gap-1">
+      <div className="flex flex-wrap items-center gap-1">
         {PRESET_TIMES.map((time) => (
           <Button
             key={time}
             variant={targetTime === time ? "default" : "ghost"}
             size="sm"
-            className="h-7 px-1.5 sm:px-2 text-xs"
+            className="h-6 px-1.5 text-xs"
             onClick={() => handlePreset(time)}
             data-testid={`button-preset-${time}`}
           >
@@ -154,14 +154,14 @@ export function RestTimer() {
       <Button
         variant="ghost"
         size="icon"
-        className="h-7 w-7 ml-auto"
+        className="h-6 w-6 ml-auto"
         onClick={() => {
           handleReset();
           setIsExpanded(false);
         }}
         data-testid="button-hide-timer"
       >
-        <X className="h-3.5 w-3.5" />
+        <X className="h-3 w-3" />
       </Button>
     </div>
   );
