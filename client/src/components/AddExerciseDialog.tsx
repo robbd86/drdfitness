@@ -14,10 +14,21 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Plus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
+
+/* ───────────────────────────────────────────── */
+/* Types & Schema                                */
+/* ───────────────────────────────────────────── */
 
 interface AddExerciseDialogProps {
   dayId: number;
@@ -32,16 +43,53 @@ const formSchema = insertExerciseSchema.omit({ dayId: true }).extend({
 
 type FormValues = z.infer<typeof formSchema>;
 
+/* ───────────────────────────────────────────── */
+/* Hooks                                        */
+/* ───────────────────────────────────────────── */
+
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
+
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 640);
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
+
   return isMobile;
 }
+
+/**
+ * CRITICAL FIX:
+ * Tracks the REAL visible viewport height when the keyboard opens.
+ */
+function useVisualViewportHeight() {
+  const [height, setHeight] = useState(() => {
+    if (typeof window === "undefined") return 0;
+    return window.visualViewport?.height ?? window.innerHeight;
+  });
+
+  useEffect(() => {
+    if (!window.visualViewport) return;
+
+    const update = () => setHeight(window.visualViewport!.height);
+
+    window.visualViewport.addEventListener("resize", update);
+    window.visualViewport.addEventListener("scroll", update);
+
+    return () => {
+      window.visualViewport.removeEventListener("resize", update);
+      window.visualViewport.removeEventListener("scroll", update);
+    };
+  }, []);
+
+  return height;
+}
+
+/* ───────────────────────────────────────────── */
+/* Exercise Form                                */
+/* ───────────────────────────────────────────── */
 
 function ExerciseForm({
   onSubmit,
@@ -100,9 +148,15 @@ function ExerciseForm({
               name={fieldName as any}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{fieldName === "weight" ? "Kg" : fieldName}</FormLabel>
+                  <FormLabel>
+                    {fieldName === "weight" ? "Kg" : fieldName}
+                  </FormLabel>
                   <FormControl>
-                    <Input type="number" {...field} onFocus={handleFocus} />
+                    <Input
+                      type="number"
+                      {...field}
+                      onFocus={handleFocus}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -134,11 +188,19 @@ function ExerciseForm({
   );
 }
 
-export function AddExerciseDialog({ dayId, workoutId }: AddExerciseDialogProps) {
+/* ───────────────────────────────────────────── */
+/* Main Component                               */
+/* ───────────────────────────────────────────── */
+
+export function AddExerciseDialog({
+  dayId,
+  workoutId,
+}: AddExerciseDialogProps) {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
   const createExercise = useCreateExercise();
   const isMobile = useIsMobile();
+  const viewportHeight = useVisualViewportHeight();
   const formRef = useRef<HTMLFormElement>(null);
 
   const onSubmit = (data: FormValues) => {
@@ -160,23 +222,32 @@ export function AddExerciseDialog({ dayId, workoutId }: AddExerciseDialogProps) 
     </Button>
   );
 
+  /* ───────────── MOBILE FULLSCREEN MODAL ───────────── */
+
   if (isMobile) {
     return (
       <>
         <div onClick={() => setOpen(true)}>{triggerButton}</div>
 
         {open && (
-          <div className="fixed inset-0 z-50 flex flex-col bg-background">
+          <div
+            className="fixed inset-0 z-50 flex flex-col bg-background"
+            style={{ height: viewportHeight }}
+          >
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b">
               <h2 className="text-lg font-semibold">Add Exercise</h2>
-              <Button size="icon" variant="ghost" onClick={() => setOpen(false)}>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setOpen(false)}
+              >
                 <X />
               </Button>
             </div>
 
-            {/* Scrollable content WITH SAFE BOTTOM SPACE */}
-            <div className="flex-1 overflow-y-auto px-4 pt-4 pb-[12rem]">
+            {/* Scrollable body (keyboard-safe) */}
+            <div className="flex-1 overflow-y-auto px-4 pt-4 pb-[14rem]">
               <ExerciseForm
                 onSubmit={onSubmit}
                 isPending={createExercise.isPending}
@@ -185,7 +256,7 @@ export function AddExerciseDialog({ dayId, workoutId }: AddExerciseDialogProps) 
               />
             </div>
 
-            {/* Sticky footer */}
+            {/* Fixed footer */}
             <div className="border-t p-4 bg-background">
               <Button
                 className="w-full"
@@ -200,6 +271,8 @@ export function AddExerciseDialog({ dayId, workoutId }: AddExerciseDialogProps) 
       </>
     );
   }
+
+  /* ───────────── DESKTOP DIALOG ───────────── */
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -221,4 +294,5 @@ export function AddExerciseDialog({ dayId, workoutId }: AddExerciseDialogProps) 
     </Dialog>
   );
 }
+
 
