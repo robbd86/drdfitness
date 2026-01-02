@@ -8,9 +8,10 @@ import { useToast } from "@/hooks/use-toast";
 import { EditExerciseDialog } from "./EditExerciseDialog";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ExerciseItemProps {
   exercise: Exercise;
@@ -69,14 +70,29 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
   };
 
   // Initialize sets if needed
+  useEffect(() => {
+    if (!exercise.setData || exercise.setData.length === 0) {
+      const initialSets = Array.from({ length: exercise.sets }).map(() => ({
+        weight: exercise.weight || 0,
+        reps: exercise.reps,
+        completed: false
+      }));
+      updateExercise.mutate({ id: exercise.id, workoutId, setData: initialSets });
+    }
+  }, [exercise.id, exercise.sets, exercise.weight, exercise.reps, exercise.setData, workoutId]);
+
   if (!exercise.setData || exercise.setData.length === 0) {
-    const initialSets = Array.from({ length: exercise.sets }).map(() => ({
-      weight: exercise.weight || 0,
-      reps: exercise.reps,
-      completed: false
-    }));
-    updateExercise.mutate({ id: exercise.id, workoutId, setData: initialSets });
-    return null;
+    return (
+      <Card className="p-4 border-border/40 bg-card/30 backdrop-blur-sm">
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-5 w-5 rounded-md" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="h-3 w-1/4" />
+          </div>
+        </div>
+      </Card>
+    );
   }
 
   return (
