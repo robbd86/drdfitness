@@ -229,7 +229,9 @@ export function AddExerciseDialog({ dayId, workoutId }: AddExerciseDialogProps) 
         <DrawerTrigger asChild>
           {triggerButton}
         </DrawerTrigger>
-        <DrawerContent className="flex flex-col overflow-hidden">
+        <DrawerContent 
+          className="flex flex-col overflow-hidden max-[480px]:!inset-0 max-[480px]:!top-0 max-[480px]:!bottom-0 max-[480px]:!h-[100dvh] max-[480px]:!max-h-[100dvh] max-[480px]:!rounded-none"
+        >
           <DrawerHeader className="flex-shrink-0">
             <DrawerTitle>Add Exercise</DrawerTitle>
             <DrawerDescription className="sr-only">Fill in the exercise details below</DrawerDescription>
