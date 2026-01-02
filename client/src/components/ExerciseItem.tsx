@@ -2,7 +2,7 @@ import { type Exercise } from "@shared/schema";
 import { useUpdateExercise, useDeleteExercise } from "@/hooks/use-workouts";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Trash2, GripVertical, Plus, Minus, Settings2 } from "lucide-react";
+import { Trash2, GripVertical, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { EditExerciseDialog } from "./EditExerciseDialog";
@@ -47,17 +47,19 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
     });
   };
 
-  const handleWeightAdjust = (setIndex: number, delta: number) => {
+  const handleWeightChange = (setIndex: number, value: string) => {
     const newData = [...(exercise.setData || [])];
     if (!newData[setIndex]) return;
-    newData[setIndex].weight = Math.max(0, (newData[setIndex].weight || 0) + delta);
+    const parsed = parseFloat(value);
+    newData[setIndex].weight = isNaN(parsed) ? 0 : Math.max(0, parsed);
     updateExercise.mutate({ id: exercise.id, workoutId, setData: newData });
   };
 
-  const handleRepsAdjust = (setIndex: number, delta: number) => {
+  const handleRepsChange = (setIndex: number, value: string) => {
     const newData = [...(exercise.setData || [])];
     if (!newData[setIndex]) return;
-    newData[setIndex].reps = Math.max(1, (newData[setIndex].reps || 1) + delta);
+    const parsed = parseInt(value, 10);
+    newData[setIndex].reps = isNaN(parsed) ? 1 : Math.max(1, parsed);
     updateExercise.mutate({ id: exercise.id, workoutId, setData: newData });
   };
 
@@ -138,6 +140,7 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
                   size="icon"
                   className="h-8 w-8 text-muted-foreground hover:text-primary"
                   onClick={() => setShowSets(!showSets)}
+                  data-testid={`button-expand-sets-${exercise.id}`}
                 >
                   <Settings2 className={cn("h-4 w-4 transition-transform", showSets && "rotate-90")} />
                 </Button>
@@ -147,6 +150,7 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
                   size="icon"
                   className="h-8 w-8 text-muted-foreground hover:text-destructive"
                   onClick={() => deleteExercise.mutate({ id: exercise.id, workoutId })}
+                  data-testid={`button-delete-exercise-${exercise.id}`}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -188,54 +192,32 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
                   />
                 </div>
 
-                <div className="flex items-center gap-1">
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    className="h-6 w-6 rounded-full border-border/50"
-                    onClick={() => handleRepsAdjust(idx, -1)}
-                    data-testid={`button-reps-minus-${idx}`}
-                  >
-                    <Minus className="h-3 w-3" />
-                  </Button>
-                  <div className="flex flex-col items-center min-w-[40px]">
-                    <span className={cn("text-sm font-bold font-mono", set.completed && "line-through text-muted-foreground")}>{set.reps}</span>
-                    <span className="text-[9px] text-muted-foreground uppercase font-bold">Reps</span>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    className="h-6 w-6 rounded-full border-border/50"
-                    onClick={() => handleRepsAdjust(idx, 1)}
-                    data-testid={`button-reps-plus-${idx}`}
-                  >
-                    <Plus className="h-3 w-3" />
-                  </Button>
+                <div className="flex flex-col items-center">
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    value={set.reps}
+                    onChange={(e) => handleRepsChange(idx, e.target.value)}
+                    className={cn(
+                      "w-12 h-7 text-center text-sm font-bold font-mono bg-background border border-border/50 rounded",
+                      set.completed && "line-through text-muted-foreground"
+                    )}
+                    data-testid={`input-reps-${idx}`}
+                  />
+                  <span className="text-[9px] text-muted-foreground uppercase font-bold mt-0.5">Reps</span>
                 </div>
 
-                <div className="flex items-center gap-1">
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    className="h-6 w-6 rounded-full border-border/50"
-                    onClick={() => handleWeightAdjust(idx, -2.5)}
-                    data-testid={`button-weight-minus-${idx}`}
-                  >
-                    <Minus className="h-3 w-3" />
-                  </Button>
-                  <div className="flex flex-col items-center min-w-[45px]">
-                    <span className="text-sm font-bold font-mono">{set.weight}</span>
-                    <span className="text-[9px] text-muted-foreground uppercase font-bold">KG</span>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    className="h-6 w-6 rounded-full border-border/50"
-                    onClick={() => handleWeightAdjust(idx, 2.5)}
-                    data-testid={`button-weight-plus-${idx}`}
-                  >
-                    <Plus className="h-3 w-3" />
-                  </Button>
+                <div className="flex flex-col items-center">
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    step="any"
+                    value={set.weight}
+                    onChange={(e) => handleWeightChange(idx, e.target.value)}
+                    className="w-16 h-7 text-center text-sm font-bold font-mono bg-background border border-border/50 rounded"
+                    data-testid={`input-weight-${idx}`}
+                  />
+                  <span className="text-[9px] text-muted-foreground uppercase font-bold mt-0.5">KG</span>
                 </div>
               </div>
             ))}
