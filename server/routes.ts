@@ -136,6 +136,34 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
+  // Data Management Routes
+  app.get("/api/data/export", async (req, res) => {
+    const workouts = await storage.getWorkouts();
+    res.json({ workouts, exportedAt: new Date().toISOString() });
+  });
+
+  app.post("/api/data/import", async (req, res) => {
+    try {
+      const { workouts, replaceExisting } = req.body;
+      await storage.importData({ workouts }, replaceExisting === true);
+      res.status(200).json({ message: "Data imported successfully" });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Invalid import data format", 
+          errors: err.errors.map(e => `${e.path.join('.')}: ${e.message}`)
+        });
+      }
+      console.error("Import error:", err);
+      res.status(500).json({ message: "Failed to import data" });
+    }
+  });
+
+  app.delete("/api/data/reset", async (req, res) => {
+    await storage.resetAllData();
+    res.status(200).json({ message: "All data has been reset" });
+  });
+
   // Seed Data
   const existingWorkouts = await storage.getWorkouts();
   if (existingWorkouts.length === 0) {

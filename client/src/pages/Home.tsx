@@ -1,5 +1,6 @@
 import { useWorkouts, useDeleteWorkout } from "@/hooks/use-workouts";
 import { CreateWorkoutDialog } from "@/components/CreateWorkoutDialog";
+import { DataManagement } from "@/components/DataManagement";
 import { Layout } from "@/components/Layout";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -111,6 +112,10 @@ export default function Home() {
             ))}
           </div>
         )}
+
+        <div className="pt-8 border-t border-border/30">
+          <DataManagement />
+        </div>
       </div>
     </Layout>
   );
