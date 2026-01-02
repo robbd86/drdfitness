@@ -4,6 +4,7 @@ import { Layout } from "@/components/Layout";
 import { AddDayDialog } from "@/components/AddDayDialog";
 import { AddExerciseDialog } from "@/components/AddExerciseDialog";
 import { ExerciseItem } from "@/components/ExerciseItem";
+import { RestTimer } from "@/components/RestTimer";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, Trash2, CalendarDays, Copy, ArrowRight } from "lucide-react";
@@ -179,11 +180,12 @@ export default function WorkoutDetail() {
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <div className="flex items-center justify-between mb-4 px-1">
-                      <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-between mb-4 px-1 flex-wrap gap-2">
+                      <div className="flex items-center gap-3 flex-wrap">
                         <Badge variant="outline" className="text-xs font-black uppercase tracking-widest border-primary/20 text-primary px-3">
                           {day.exercises.length} EXERCISES
                         </Badge>
+                        <RestTimer />
                       </div>
                       <div className="flex items-center gap-2">
                         <Button 
