@@ -59,6 +59,14 @@ export const api = {
         400: errorSchemas.validation,
       },
     },
+    duplicate: {
+      method: 'POST' as const,
+      path: '/api/days/:id/duplicate',
+      responses: {
+        201: z.custom<typeof workoutDays.$inferSelect>(),
+        404: errorSchemas.notFound,
+      },
+    },
     delete: {
       method: 'DELETE' as const,
       path: '/api/days/:id',

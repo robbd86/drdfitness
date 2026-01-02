@@ -68,6 +68,15 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
+  app.post("/api/days/:id/duplicate", async (req, res) => {
+    try {
+      const day = await storage.duplicateDay(Number(req.params.id));
+      res.status(201).json(day);
+    } catch (err) {
+      res.status(404).json({ message: "Day not found" });
+    }
+  });
+
   app.post(api.exercises.create.path, async (req, res) => {
     try {
       const input = api.exercises.create.input.parse(req.body);

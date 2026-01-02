@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -13,7 +13,8 @@ export const workouts = pgTable("workouts", {
 export const workoutDays = pgTable("workout_days", {
   id: serial("id").primaryKey(),
   workoutId: integer("workout_id").notNull(),
-  name: text("name").notNull(), // e.g., "Day 1", "Chest & Triceps"
+  name: text("name").notNull(),
+  order: integer("order").notNull().default(0),
 });
 
 export const exercises = pgTable("exercises", {
@@ -26,6 +27,10 @@ export const exercises = pgTable("exercises", {
   notes: text("notes"),
   order: integer("order").notNull().default(0),
   completed: boolean("completed").default(false),
+  // Each set can have its own weight and reps if needed
+  // Format: [{weight: number, reps: number, completed: boolean}]
+  setData: jsonb("set_data").$type<{ weight: number; reps: number; completed: boolean }[]>(),
+  useCustomSets: boolean("use_custom_sets").default(false),
 });
 
 // Relations

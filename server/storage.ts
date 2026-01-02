@@ -16,12 +16,14 @@ export interface IStorage {
 
   // Days
   createDay(day: InsertDay): Promise<WorkoutDay>;
+  duplicateDay(dayId: number): Promise<WorkoutDay>;
   deleteDay(id: number): Promise<void>;
 
   // Exercises
   createExercise(exercise: InsertExercise): Promise<Exercise>;
   updateExercise(id: number, updates: Partial<InsertExercise>): Promise<Exercise | undefined>;
   deleteExercise(id: number): Promise<void>;
+  reorderExercises(dayId: number, exerciseIds: number[]): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -31,10 +33,10 @@ export class DatabaseStorage implements IStorage {
         days: {
           with: {
             exercises: {
-              orderBy: (exercises, { asc }) => [asc(exercises.id)],
+              orderBy: (exercises, { asc }) => [asc(exercises.order)],
             }
           },
-          orderBy: (days, { asc }) => [asc(days.id)],
+          orderBy: (days, { asc }) => [asc(days.order)],
         },
       },
       orderBy: (workouts, { desc }) => [desc(workouts.createdAt)],
@@ -48,10 +50,10 @@ export class DatabaseStorage implements IStorage {
         days: {
           with: {
             exercises: {
-              orderBy: (exercises, { asc }) => [asc(exercises.id)],
+              orderBy: (exercises, { asc }) => [asc(exercises.order)],
             }
           },
-          orderBy: (days, { asc }) => [asc(days.id)],
+          orderBy: (days, { asc }) => [asc(days.order)],
         },
       },
     });
@@ -67,7 +69,44 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createDay(day: InsertDay) {
-    const [newDay] = await db.insert(workoutDays).values(day).returning();
+    const existing = await db.query.workoutDays.findMany({
+      where: eq(workoutDays.workoutId, day.workoutId),
+    });
+    const maxOrder = existing.length > 0 ? Math.max(...existing.map(d => d.order)) : -1;
+    const [newDay] = await db.insert(workoutDays).values({
+      ...day,
+      order: maxOrder + 1
+    }).returning();
+    return newDay;
+  }
+
+  async duplicateDay(dayId: number) {
+    const sourceDay = await db.query.workoutDays.findFirst({
+      where: eq(workoutDays.id, dayId),
+      with: { exercises: true }
+    });
+    if (!sourceDay) throw new Error("Day not found");
+
+    const newDay = await this.createDay({
+      workoutId: sourceDay.workoutId,
+      name: `${sourceDay.name} (Copy)`,
+    });
+
+    for (const ex of sourceDay.exercises) {
+      await this.createExercise({
+        dayId: newDay.id,
+        name: ex.name,
+        sets: ex.sets,
+        reps: ex.reps,
+        weight: ex.weight,
+        notes: ex.notes,
+        order: ex.order,
+        completed: false,
+        setData: ex.setData,
+        useCustomSets: ex.useCustomSets
+      });
+    }
+
     return newDay;
   }
 

@@ -83,6 +83,21 @@ export function useCreateDay() {
   });
 }
 
+export function useDuplicateDay() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, workoutId }: { id: number; workoutId: number }) => {
+      const res = await fetch(`/api/days/${id}/duplicate`, { method: "POST" });
+      if (!res.ok) throw new Error("Failed to duplicate day");
+      return res.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [api.workouts.get.path, variables.workoutId] });
+      queryClient.invalidateQueries({ queryKey: [api.workouts.list.path] });
+    },
+  });
+}
+
 export function useDeleteDay() {
   const queryClient = useQueryClient();
   return useMutation({

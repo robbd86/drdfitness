@@ -2,12 +2,15 @@ import { type Exercise } from "@shared/schema";
 import { useUpdateExercise, useDeleteExercise } from "@/hooks/use-workouts";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Trash2, GripVertical } from "lucide-react";
+import { Trash2, GripVertical, Plus, Minus, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { EditExerciseDialog } from "./EditExerciseDialog";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 interface ExerciseItemProps {
   exercise: Exercise;
@@ -18,6 +21,7 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
   const updateExercise = useUpdateExercise();
   const deleteExercise = useDeleteExercise();
   const { toast } = useToast();
+  const [showSets, setShowSets] = useState(false);
 
   const {
     attributes,
@@ -31,7 +35,7 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    zIndex: isDragging ? 1 : 0,
+    zIndex: isDragging ? 50 : 0,
   };
 
   const handleToggle = (checked: boolean) => {
@@ -39,79 +43,158 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
       id: exercise.id,
       workoutId,
       completed: checked
-    }, {
-      onError: () => {
-        toast({ title: "Error", description: "Failed to update status", variant: "destructive" });
-      }
     });
   };
 
-  const handleDelete = () => {
-    deleteExercise.mutate({ id: exercise.id, workoutId }, {
-      onSuccess: () => toast({ title: "Deleted", description: "Exercise removed" })
+  const handleWeightAdjust = (setIndex: number, delta: number) => {
+    const newData = [...(exercise.setData || [])];
+    if (!newData[setIndex]) return;
+    newData[setIndex].weight = Math.max(0, (newData[setIndex].weight || 0) + delta);
+    updateExercise.mutate({ id: exercise.id, workoutId, setData: newData });
+  };
+
+  const toggleSetComplete = (setIndex: number) => {
+    const newData = [...(exercise.setData || [])];
+    if (!newData[setIndex]) return;
+    newData[setIndex].completed = !newData[setIndex].completed;
+    
+    // Auto-complete main exercise if all sets are done
+    const allDone = newData.length > 0 && newData.every(s => s.completed);
+    updateExercise.mutate({ 
+      id: exercise.id, 
+      workoutId, 
+      setData: newData,
+      completed: allDone
     });
   };
+
+  // Initialize sets if needed
+  if (!exercise.setData || exercise.setData.length === 0) {
+    const initialSets = Array.from({ length: exercise.sets }).map(() => ({
+      weight: exercise.weight || 0,
+      reps: exercise.reps,
+      completed: false
+    }));
+    updateExercise.mutate({ id: exercise.id, workoutId, setData: initialSets });
+    return null;
+  }
 
   return (
-    <div 
+    <Card 
       ref={setNodeRef} 
       style={style}
       className={cn(
-        "group flex items-start gap-3 p-4 rounded-xl border border-transparent hover:border-border/50 transition-all bg-secondary/20 hover:bg-secondary/40 relative touch-none",
-        exercise.completed && "opacity-60",
-        isDragging && "opacity-50 ring-2 ring-primary bg-secondary/60"
+        "group relative border-border/40 bg-card/30 backdrop-blur-sm transition-all duration-300",
+        exercise.completed && "opacity-60 bg-secondary/10",
+        isDragging && "shadow-xl ring-2 ring-primary border-primary/50"
       )}
     >
-      <div {...attributes} {...listeners} className="mt-1.5 cursor-grab active:cursor-grabbing text-muted-foreground/50 hover:text-muted-foreground">
-        <GripVertical className="h-4 w-4" />
-      </div>
+      <div className="p-3 md:p-4">
+        <div className="flex items-start gap-3">
+          <div {...attributes} {...listeners} className="mt-1 cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-primary transition-colors">
+            <GripVertical className="h-5 w-5" />
+          </div>
 
-      <Checkbox 
-        checked={exercise.completed || false} 
-        onCheckedChange={handleToggle}
-        className="mt-1 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-      />
-      
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between">
-          <h4 className={cn(
-            "font-medium text-foreground truncate pr-2",
-            exercise.completed && "line-through text-muted-foreground"
-          )}>
-            {exercise.name}
-          </h4>
-          <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <EditExerciseDialog exercise={exercise} workoutId={workoutId} />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 text-muted-foreground hover:text-destructive transition-colors ml-1"
-              onClick={handleDelete}
-              disabled={deleteExercise.isPending}
-            >
-              <Trash2 className="h-3 w-3" />
-            </Button>
+          <Checkbox 
+            checked={exercise.completed || false} 
+            onCheckedChange={handleToggle}
+            className="mt-1 h-5 w-5 rounded-md border-2"
+          />
+          
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <h4 className={cn(
+                "font-bold text-base md:text-lg tracking-tight truncate",
+                exercise.completed && "line-through text-muted-foreground"
+              )}>
+                {exercise.name}
+              </h4>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-primary"
+                  onClick={() => setShowSets(!showSets)}
+                >
+                  <Settings2 className={cn("h-4 w-4 transition-transform", showSets && "rotate-90")} />
+                </Button>
+                <EditExerciseDialog exercise={exercise} workoutId={workoutId} />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                  onClick={() => deleteExercise.mutate({ id: exercise.id, workoutId })}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              <Badge variant="secondary" className="font-mono px-2 py-0 h-6 text-xs">
+                {exercise.sets} Sets
+              </Badge>
+              <Badge variant="outline" className="font-mono px-2 py-0 h-6 text-xs border-primary/20 text-primary">
+                {exercise.reps} Reps
+              </Badge>
+              {exercise.weight && (
+                <Badge variant="default" className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-2 py-0 h-6 text-xs font-bold">
+                  {exercise.weight} LBS
+                </Badge>
+              )}
+            </div>
           </div>
         </div>
-        
-        <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground font-mono">
-          <span>{exercise.sets} sets</span>
-          <span>×</span>
-          <span>{exercise.reps} reps</span>
-          {exercise.weight && (
-            <>
-              <span>@</span>
-              <span className="text-primary font-semibold">{exercise.weight} lbs</span>
-            </>
-          )}
-        </div>
-        
-        {exercise.notes && (
-          <p className="mt-2 text-xs text-muted-foreground italic border-l-2 border-primary/20 pl-2">
-            {exercise.notes}
-          </p>
+
+        {showSets && (
+          <div className="mt-4 space-y-2 border-t border-border/20 pt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+            {exercise.setData.map((set, idx) => (
+              <div 
+                key={idx} 
+                className={cn(
+                  "flex items-center justify-between p-2 rounded-lg transition-colors",
+                  set.completed ? "bg-primary/5" : "bg-secondary/20"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="font-mono text-sm font-bold text-muted-foreground w-6">#{idx + 1}</span>
+                  <Checkbox 
+                    checked={set.completed} 
+                    onCheckedChange={() => toggleSetComplete(idx)}
+                    className="h-4 w-4"
+                  />
+                  <span className={cn("text-sm font-medium", set.completed && "line-through text-muted-foreground")}>
+                    {set.reps} Reps
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="h-7 w-7 rounded-full border-border/50"
+                    onClick={() => handleWeightAdjust(idx, -2.5)}
+                  >
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                  <div className="flex flex-col items-center min-w-[60px]">
+                    <span className="text-sm font-bold font-mono">{set.weight}</span>
+                    <span className="text-[10px] text-muted-foreground uppercase font-bold">LBS</span>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="h-7 w-7 rounded-full border-border/50"
+                    onClick={() => handleWeightAdjust(idx, 2.5)}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
-    </div>
+    </Card>
   );
 }
