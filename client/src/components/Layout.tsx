@@ -2,6 +2,7 @@ import { type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { Dumbbell, Home, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { InstallPrompt } from "./InstallPrompt";
 
 interface NavItem {
   path: string;
@@ -65,6 +66,8 @@ export function Layout({ children }: { children: ReactNode }) {
       <footer className="border-t border-border/40 py-6 text-center text-sm text-muted-foreground">
         <p>DRD Fitness - Train Hard, Track Smart</p>
       </footer>
+
+      <InstallPrompt />
     </div>
   );
 }
