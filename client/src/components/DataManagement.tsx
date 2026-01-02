@@ -14,7 +14,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Upload, Trash2, FileJson, FileSpreadsheet } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
+import { dataApi } from "@/services/api";
+import { formatWorkoutsAsCSV, downloadFile, parseImportFile } from "@/domain/export";
 
 export function DataManagement() {
   const { toast } = useToast();
@@ -22,23 +24,15 @@ export function DataManagement() {
   const [isImporting, setIsImporting] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
-  const [pendingImportData, setPendingImportData] = useState<any>(null);
+  const [pendingImportData, setPendingImportData] = useState<{ workouts: any[] } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExportJSON = async () => {
     setIsExporting(true);
     try {
-      const response = await fetch("/api/data/export");
-      const data = await response.json();
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `drd-fitness-backup-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const data = await dataApi.export();
+      const filename = `drd-fitness-backup-${new Date().toISOString().split('T')[0]}.json`;
+      downloadFile(JSON.stringify(data, null, 2), filename, "application/json");
       toast({ title: "Export Complete", description: "Your workout data has been downloaded as JSON." });
     } catch {
       toast({ title: "Export Failed", description: "Could not export your data.", variant: "destructive" });
@@ -50,57 +44,10 @@ export function DataManagement() {
   const handleExportCSV = async () => {
     setIsExporting(true);
     try {
-      const response = await fetch("/api/data/export");
-      const data = await response.json();
-      
-      const rows: string[] = ["Workout,Day,Exercise,Set Number,Reps,Weight (KG),Completed,Notes"];
-      
-      for (const workout of data.workouts) {
-        for (const day of workout.days || []) {
-          for (const exercise of day.exercises || []) {
-            if (exercise.setData && exercise.setData.length > 0) {
-              for (let i = 0; i < exercise.setData.length; i++) {
-                const set = exercise.setData[i];
-                const row = [
-                  `"${workout.name.replace(/"/g, '""')}"`,
-                  `"${day.name.replace(/"/g, '""')}"`,
-                  `"${exercise.name.replace(/"/g, '""')}"`,
-                  i + 1,
-                  set.reps || exercise.reps,
-                  set.weight || 0,
-                  set.completed ? "Yes" : "No",
-                  `"${(exercise.notes || '').replace(/"/g, '""')}"`
-                ].join(",");
-                rows.push(row);
-              }
-            } else {
-              for (let i = 0; i < exercise.sets; i++) {
-                const row = [
-                  `"${workout.name.replace(/"/g, '""')}"`,
-                  `"${day.name.replace(/"/g, '""')}"`,
-                  `"${exercise.name.replace(/"/g, '""')}"`,
-                  i + 1,
-                  exercise.reps,
-                  exercise.weight || 0,
-                  "No",
-                  `"${(exercise.notes || '').replace(/"/g, '""')}"`
-                ].join(",");
-                rows.push(row);
-              }
-            }
-          }
-        }
-      }
-
-      const blob = new Blob([rows.join("\n")], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `drd-fitness-backup-${new Date().toISOString().split('T')[0]}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const data = await dataApi.export();
+      const csvContent = formatWorkoutsAsCSV(data.workouts);
+      const filename = `drd-fitness-backup-${new Date().toISOString().split('T')[0]}.csv`;
+      downloadFile(csvContent, filename, "text/csv");
       toast({ title: "Export Complete", description: "Your workout data has been downloaded as CSV." });
     } catch {
       toast({ title: "Export Failed", description: "Could not export your data.", variant: "destructive" });
@@ -115,9 +62,9 @@ export function DataManagement() {
 
     try {
       const text = await file.text();
-      const data = JSON.parse(text);
+      const data = parseImportFile(text);
       
-      if (!data.workouts || !Array.isArray(data.workouts)) {
+      if (!data) {
         throw new Error("Invalid file format");
       }
 
@@ -138,10 +85,7 @@ export function DataManagement() {
     setIsImporting(true);
     setShowImportDialog(false);
     try {
-      await apiRequest("POST", "/api/data/import", { 
-        ...pendingImportData, 
-        replaceExisting 
-      });
+      await dataApi.import(pendingImportData.workouts, replaceExisting);
       queryClient.invalidateQueries({ queryKey: ["/api/workouts"] });
       toast({ title: "Import Complete", description: `Imported ${pendingImportData.workouts.length} workout(s) successfully.` });
     } catch {
@@ -155,7 +99,7 @@ export function DataManagement() {
   const handleReset = async () => {
     setIsResetting(true);
     try {
-      await apiRequest("DELETE", "/api/data/reset");
+      await dataApi.reset();
       queryClient.invalidateQueries({ queryKey: ["/api/workouts"] });
       toast({ title: "Reset Complete", description: "All workout data has been deleted." });
     } catch {
@@ -168,7 +112,7 @@ export function DataManagement() {
   return (
     <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
       <CardHeader>
-        <CardTitle className="text-lg font-bold">Data Management</CardTitle>
+        <CardTitle className="text-lg font-bold" data-testid="text-data-management-title">Data Management</CardTitle>
         <CardDescription>Export, import, or reset your workout data</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
