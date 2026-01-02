@@ -151,3 +151,21 @@ export function useDeleteExercise() {
     },
   });
 }
+
+export function useReorderExercises() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ dayId, exerciseIds }: { dayId: number; exerciseIds: number[] }) => {
+      const res = await fetch(`/api/days/${dayId}/exercises/reorder`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ exerciseIds }),
+      });
+      if (!res.ok) throw new Error("Failed to reorder exercises");
+    },
+    onSuccess: () => {
+       queryClient.invalidateQueries({ queryKey: [api.workouts.list.path] });
+       queryClient.invalidateQueries({ queryKey: [api.workouts.get.path] }); 
+    },
+  });
+}

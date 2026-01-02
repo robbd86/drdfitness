@@ -2,9 +2,12 @@ import { type Exercise } from "@shared/schema";
 import { useUpdateExercise, useDeleteExercise } from "@/hooks/use-workouts";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { Trash2, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { EditExerciseDialog } from "./EditExerciseDialog";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface ExerciseItemProps {
   exercise: Exercise;
@@ -15,6 +18,21 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
   const updateExercise = useUpdateExercise();
   const deleteExercise = useDeleteExercise();
   const { toast } = useToast();
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: exercise.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 1 : 0,
+  };
 
   const handleToggle = (checked: boolean) => {
     updateExercise.mutate({
@@ -35,10 +53,19 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
   };
 
   return (
-    <div className={cn(
-      "group flex items-start gap-4 p-4 rounded-xl border border-transparent hover:border-border/50 transition-all bg-secondary/20 hover:bg-secondary/40",
-      exercise.completed && "opacity-60"
-    )}>
+    <div 
+      ref={setNodeRef} 
+      style={style}
+      className={cn(
+        "group flex items-start gap-3 p-4 rounded-xl border border-transparent hover:border-border/50 transition-all bg-secondary/20 hover:bg-secondary/40 relative touch-none",
+        exercise.completed && "opacity-60",
+        isDragging && "opacity-50 ring-2 ring-primary bg-secondary/60"
+      )}
+    >
+      <div {...attributes} {...listeners} className="mt-1.5 cursor-grab active:cursor-grabbing text-muted-foreground/50 hover:text-muted-foreground">
+        <GripVertical className="h-4 w-4" />
+      </div>
+
       <Checkbox 
         checked={exercise.completed || false} 
         onCheckedChange={handleToggle}
@@ -53,15 +80,18 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
           )}>
             {exercise.name}
           </h4>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
-            onClick={handleDelete}
-            disabled={deleteExercise.isPending}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <EditExerciseDialog exercise={exercise} workoutId={workoutId} />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 text-muted-foreground hover:text-destructive transition-colors ml-1"
+              onClick={handleDelete}
+              disabled={deleteExercise.isPending}
+            >
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </div>
         </div>
         
         <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground font-mono">

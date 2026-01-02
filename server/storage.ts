@@ -76,7 +76,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createExercise(exercise: InsertExercise) {
-    const [newExercise] = await db.insert(exercises).values(exercise).returning();
+    // Get max order
+    const existing = await db.query.exercises.findMany({
+      where: eq(exercises.dayId, exercise.dayId),
+    });
+    const maxOrder = existing.length > 0 ? Math.max(...existing.map(e => e.order)) : -1;
+    
+    const [newExercise] = await db.insert(exercises).values({
+      ...exercise,
+      order: maxOrder + 1,
+    }).returning();
     return newExercise;
   }
 
@@ -90,6 +99,16 @@ export class DatabaseStorage implements IStorage {
 
   async deleteExercise(id: number) {
     await db.delete(exercises).where(eq(exercises.id, id));
+  }
+
+  async reorderExercises(dayId: number, exerciseIds: number[]) {
+    await db.transaction(async (tx) => {
+      for (let i = 0; i < exerciseIds.length; i++) {
+        await tx.update(exercises)
+          .set({ order: i })
+          .where(eq(exercises.id, exerciseIds[i]));
+      }
+    });
   }
 }
 

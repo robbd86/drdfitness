@@ -1,5 +1,5 @@
 import { useRoute } from "wouter";
-import { useWorkout, useDeleteDay } from "@/hooks/use-workouts";
+import { useWorkout, useDeleteDay, useReorderExercises } from "@/hooks/use-workouts";
 import { Layout } from "@/components/Layout";
 import { AddDayDialog } from "@/components/AddDayDialog";
 import { AddExerciseDialog } from "@/components/AddExerciseDialog";
@@ -11,13 +11,62 @@ import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { useState, useEffect } from "react";
+import { type Exercise } from "@shared/schema";
 
 export default function WorkoutDetail() {
   const [, params] = useRoute("/workout/:id");
   const id = parseInt(params?.id || "0");
   const { data: workout, isLoading, error } = useWorkout(id);
   const deleteDay = useDeleteDay();
+  const reorderExercises = useReorderExercises();
   const { toast } = useToast();
+  
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const [orderedExercises, setOrderedExercises] = useState<Record<number, Exercise[]>>({});
+
+  useEffect(() => {
+    if (workout) {
+      const newOrdered: Record<number, Exercise[]> = {};
+      workout.days.forEach(day => {
+        newOrdered[day.id] = [...day.exercises].sort((a, b) => (a.order || 0) - (b.order || 0));
+      });
+      setOrderedExercises(newOrdered);
+    }
+  }, [workout]);
+
+  const handleDragEnd = (event: DragEndEvent, dayId: number) => {
+    const { active, over } = event;
+
+    if (active.id !== over?.id) {
+      setOrderedExercises((prev) => {
+        const currentExercises = prev[dayId] || [];
+        const oldIndex = currentExercises.findIndex((item) => item.id === active.id);
+        const newIndex = currentExercises.findIndex((item) => item.id === over?.id);
+        
+        const newExercises = arrayMove(currentExercises, oldIndex, newIndex);
+        
+        // Persist order
+        reorderExercises.mutate({ 
+          dayId, 
+          exerciseIds: newExercises.map(e => e.id) 
+        });
+
+        return {
+          ...prev,
+          [dayId]: newExercises
+        };
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -111,15 +160,26 @@ export default function WorkoutDetail() {
                         <p className="text-sm">No exercises added yet.</p>
                       </div>
                     ) : (
-                      <div className="space-y-3">
-                        {day.exercises.map((exercise) => (
-                          <ExerciseItem 
-                            key={exercise.id} 
-                            exercise={exercise} 
-                            workoutId={workout.id} 
-                          />
-                        ))}
-                      </div>
+                      <DndContext 
+                        sensors={sensors} 
+                        collisionDetection={closestCenter} 
+                        onDragEnd={(e) => handleDragEnd(e, day.id)}
+                      >
+                        <SortableContext 
+                          items={(orderedExercises[day.id] || day.exercises).map(e => e.id)} 
+                          strategy={verticalListSortingStrategy}
+                        >
+                          <div className="space-y-3">
+                            {(orderedExercises[day.id] || day.exercises).map((exercise) => (
+                              <ExerciseItem 
+                                key={exercise.id} 
+                                exercise={exercise} 
+                                workoutId={workout.id} 
+                              />
+                            ))}
+                          </div>
+                        </SortableContext>
+                      </DndContext>
                     )}
                     
                     <div className="mt-4 pt-4 border-t border-border/30">

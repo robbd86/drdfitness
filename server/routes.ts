@@ -106,6 +106,22 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/days/:dayId/exercises/reorder", async (req, res) => {
+    try {
+      const { exerciseIds } = z.object({ exerciseIds: z.array(z.number()) }).parse(req.body);
+      await storage.reorderExercises(Number(req.params.dayId), exerciseIds);
+      res.status(200).json({ message: "Exercises reordered" });
+    } catch (err) {
+       if (err instanceof z.ZodError) {
+        return res.status(400).json({
+          message: err.errors[0].message,
+          field: err.errors[0].path.join('.'),
+        });
+      }
+      throw err;
+    }
+  });
+
   app.delete(api.exercises.delete.path, async (req, res) => {
     await storage.deleteExercise(Number(req.params.id));
     res.status(204).send();

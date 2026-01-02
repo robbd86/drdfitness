@@ -24,6 +24,7 @@ export const exercises = pgTable("exercises", {
   reps: integer("reps").notNull().default(10),
   weight: integer("weight"),
   notes: text("notes"),
+  order: integer("order").notNull().default(0),
   completed: boolean("completed").default(false),
 });
 
