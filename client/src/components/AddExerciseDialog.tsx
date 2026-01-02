@@ -159,11 +159,35 @@ function ExerciseForm({ onSubmit, isPending, isMobile = false, formRef }: Exerci
   );
 }
 
+function useScrollLock(isLocked: boolean) {
+  useEffect(() => {
+    if (isLocked) {
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+      document.body.style.overflow = 'hidden';
+      
+      return () => {
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.left = '';
+        document.body.style.right = '';
+        document.body.style.overflow = '';
+        window.scrollTo(0, scrollY);
+      };
+    }
+  }, [isLocked]);
+}
+
 export function AddExerciseDialog({ dayId, workoutId }: AddExerciseDialogProps) {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
   const createExercise = useCreateExercise();
   const isMobile = useIsMobile();
+  
+  useScrollLock(open && isMobile);
 
   const onSubmit = (data: FormValues) => {
     createExercise.mutate({ ...data, dayId, workoutId }, {
@@ -190,15 +214,15 @@ export function AddExerciseDialog({ dayId, workoutId }: AddExerciseDialogProps) 
         <DrawerTrigger asChild>
           {triggerButton}
         </DrawerTrigger>
-        <DrawerContent className="flex flex-col">
+        <DrawerContent className="flex flex-col overflow-hidden">
           <DrawerHeader className="flex-shrink-0">
             <DrawerTitle>Add Exercise</DrawerTitle>
             <DrawerDescription className="sr-only">Fill in the exercise details below</DrawerDescription>
           </DrawerHeader>
-          <div className="flex-1 overflow-y-auto px-4 pb-4">
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 overscroll-contain">
             <ExerciseForm onSubmit={onSubmit} isPending={createExercise.isPending} isMobile={true} />
           </div>
-          <DrawerFooter className="border-t bg-background">
+          <DrawerFooter className="flex-shrink-0 border-t bg-background">
             <Button 
               type="button" 
               className="w-full" 
