@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertExerciseSchema, type Exercise } from "@shared/schema";
@@ -220,7 +221,7 @@ export function EditExerciseDialog({ exercise, workoutId }: EditExerciseDialogPr
         <div onClick={() => setOpen(true)}>
           {triggerButton}
         </div>
-        {open && (
+        {open && createPortal(
           <div 
             className="fixed inset-0 z-[100] flex flex-col bg-background"
             style={{ 
@@ -261,7 +262,8 @@ export function EditExerciseDialog({ exercise, workoutId }: EditExerciseDialogPr
                 {updateExercise.isPending ? "Saving..." : "Save Changes"}
               </Button>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </>
     );
