@@ -120,7 +120,7 @@ export function AddExerciseDialog({ dayId, workoutId }: AddExerciseDialogProps) 
                 name="weight"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Lbs/Kg</FormLabel>
+                    <FormLabel>Kg</FormLabel>
                     <FormControl>
                       <Input type="number" {...field} value={field.value || ''} />
                     </FormControl>

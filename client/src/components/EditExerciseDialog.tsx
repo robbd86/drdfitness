@@ -132,7 +132,7 @@ export function EditExerciseDialog({ exercise, workoutId }: EditExerciseDialogPr
                 name="weight"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Lbs/Kg</FormLabel>
+                    <FormLabel>Kg</FormLabel>
                     <FormControl>
                       <Input type="number" {...field} value={field.value || ''} />
                     </FormControl>

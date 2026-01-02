@@ -155,7 +155,7 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
               </Badge>
               {exercise.weight && (
                 <Badge variant="default" className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-2 py-0 h-6 text-xs font-bold">
-                  {exercise.weight} LBS
+                  {exercise.weight} KG
                 </Badge>
               )}
             </div>
@@ -195,7 +195,7 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
                   </Button>
                   <div className="flex flex-col items-center min-w-[60px]">
                     <span className="text-sm font-bold font-mono">{set.weight}</span>
-                    <span className="text-[10px] text-muted-foreground uppercase font-bold">LBS</span>
+                    <span className="text-[10px] text-muted-foreground uppercase font-bold">KG</span>
                   </div>
                   <Button 
                     variant="outline" 
