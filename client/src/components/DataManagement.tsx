@@ -138,9 +138,9 @@ export function DataManagement() {
     setIsImporting(true);
     setShowImportDialog(false);
     try {
-      await apiRequest("/api/data/import", { 
-        method: "POST", 
-        body: JSON.stringify({ ...pendingImportData, replaceExisting }) 
+      await apiRequest("POST", "/api/data/import", { 
+        ...pendingImportData, 
+        replaceExisting 
       });
       queryClient.invalidateQueries({ queryKey: ["/api/workouts"] });
       toast({ title: "Import Complete", description: `Imported ${pendingImportData.workouts.length} workout(s) successfully.` });
@@ -155,7 +155,7 @@ export function DataManagement() {
   const handleReset = async () => {
     setIsResetting(true);
     try {
-      await apiRequest("/api/data/reset", { method: "DELETE" });
+      await apiRequest("DELETE", "/api/data/reset");
       queryClient.invalidateQueries({ queryKey: ["/api/workouts"] });
       toast({ title: "Reset Complete", description: "All workout data has been deleted." });
     } catch {

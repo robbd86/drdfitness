@@ -161,14 +161,19 @@ export class DatabaseStorage implements IStorage {
     
     const [newExercise] = await db.insert(exercises).values({
       ...exercise,
+      setData: exercise.setData as { weight: number; reps: number; completed: boolean }[] | undefined,
       order: maxOrder + 1,
     }).returning();
     return newExercise;
   }
 
   async updateExercise(id: number, updates: Partial<InsertExercise>) {
+    const typedUpdates = {
+      ...updates,
+      setData: updates.setData as { weight: number; reps: number; completed: boolean }[] | undefined,
+    };
     const [updated] = await db.update(exercises)
-      .set(updates)
+      .set(typedUpdates)
       .where(eq(exercises.id, id))
       .returning();
     return updated;
@@ -225,12 +230,12 @@ export class DatabaseStorage implements IStorage {
               name: ex.name,
               sets: ex.sets,
               reps: ex.reps,
-              weight: ex.weight,
-              notes: ex.notes,
+              weight: ex.weight ?? null,
+              notes: ex.notes ?? null,
               order: ex.order ?? exOrder++,
               completed: false,
-              setData: ex.setData,
-              useCustomSets: ex.useCustomSets,
+              setData: ex.setData as { weight: number; reps: number; completed: boolean }[] | null,
+              useCustomSets: ex.useCustomSets ?? null,
             });
           }
         }
