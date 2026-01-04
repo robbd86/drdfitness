@@ -1,10 +1,11 @@
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import {
-  workouts, workoutDays, exercises,
+  workouts, workoutDays, exercises, workoutLogs,
   type Workout, type InsertWorkout,
   type WorkoutDay, type InsertDay,
-  type Exercise, type InsertExercise
+  type Exercise, type InsertExercise,
+  type WorkoutLog, type InsertWorkoutLog
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -58,6 +59,12 @@ export interface IStorage {
   updateExercise(id: number, updates: Partial<InsertExercise>): Promise<Exercise | undefined>;
   deleteExercise(id: number): Promise<void>;
   reorderExercises(dayId: number, exerciseIds: number[]): Promise<void>;
+
+  // Workout Logs (Progression)
+  getWorkoutLogs(): Promise<WorkoutLog[]>;
+  getLogsByExerciseName(exerciseName: string): Promise<WorkoutLog[]>;
+  createWorkoutLog(log: InsertWorkoutLog): Promise<WorkoutLog>;
+  logCompletedDay(workoutId: number, dayId: number): Promise<WorkoutLog[]>;
 
   // Data management
   resetAllData(): Promise<void>;
@@ -191,6 +198,60 @@ export class DatabaseStorage implements IStorage {
           .where(eq(exercises.id, exerciseIds[i]));
       }
     });
+  }
+
+  async getWorkoutLogs() {
+    return await db.select().from(workoutLogs).orderBy(desc(workoutLogs.completedAt));
+  }
+
+  async getLogsByExerciseName(exerciseName: string) {
+    return await db.select()
+      .from(workoutLogs)
+      .where(eq(workoutLogs.exerciseName, exerciseName))
+      .orderBy(desc(workoutLogs.completedAt));
+  }
+
+  async createWorkoutLog(log: InsertWorkoutLog) {
+    const [newLog] = await db.insert(workoutLogs).values({
+      ...log,
+      setData: log.setData as { weight: number; reps: number; completed: boolean }[] | undefined,
+    }).returning();
+    return newLog;
+  }
+
+  async logCompletedDay(workoutId: number, dayId: number) {
+    const workout = await this.getWorkout(workoutId);
+    if (!workout) throw new Error("Workout not found");
+    
+    const day = workout.days.find(d => d.id === dayId);
+    if (!day) throw new Error("Day not found");
+
+    const logs: WorkoutLog[] = [];
+    for (const exercise of day.exercises) {
+      const maxWeight = exercise.setData 
+        ? Math.max(...exercise.setData.map(s => s.weight || 0))
+        : exercise.weight || 0;
+      
+      const totalVolume = exercise.setData
+        ? exercise.setData.reduce((sum, s) => sum + (s.weight || 0) * (s.reps || 0), 0)
+        : (exercise.weight || 0) * exercise.reps * exercise.sets;
+
+      const log = await this.createWorkoutLog({
+        exerciseId: exercise.id,
+        exerciseName: exercise.name,
+        workoutId: workout.id,
+        workoutName: workout.name,
+        dayName: day.name,
+        sets: exercise.sets,
+        reps: exercise.reps,
+        weight: maxWeight,
+        totalVolume,
+        setData: exercise.setData,
+      });
+      logs.push(log);
+    }
+
+    return logs;
   }
 
   async resetAllData() {

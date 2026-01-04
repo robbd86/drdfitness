@@ -164,6 +164,29 @@ export async function registerRoutes(
     res.status(200).json({ message: "All data has been reset" });
   });
 
+  // Workout Logs (Progress Tracking)
+  app.get("/api/logs", async (req, res) => {
+    const logs = await storage.getWorkoutLogs();
+    res.json(logs);
+  });
+
+  app.get("/api/logs/exercise/:name", async (req, res) => {
+    const logs = await storage.getLogsByExerciseName(decodeURIComponent(req.params.name));
+    res.json(logs);
+  });
+
+  app.post("/api/workouts/:workoutId/days/:dayId/complete", async (req, res) => {
+    try {
+      const logs = await storage.logCompletedDay(
+        Number(req.params.workoutId),
+        Number(req.params.dayId)
+      );
+      res.status(201).json(logs);
+    } catch (err) {
+      res.status(404).json({ message: (err as Error).message });
+    }
+  });
+
   // Seed Data
   const existingWorkouts = await storage.getWorkouts();
   if (existingWorkouts.length === 0) {

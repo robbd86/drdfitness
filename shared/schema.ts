@@ -33,6 +33,21 @@ export const exercises = pgTable("exercises", {
   useCustomSets: boolean("use_custom_sets").default(false),
 });
 
+export const workoutLogs = pgTable("workout_logs", {
+  id: serial("id").primaryKey(),
+  exerciseId: integer("exercise_id").notNull(),
+  exerciseName: text("exercise_name").notNull(),
+  workoutId: integer("workout_id").notNull(),
+  workoutName: text("workout_name").notNull(),
+  dayName: text("day_name").notNull(),
+  completedAt: timestamp("completed_at").defaultNow(),
+  sets: integer("sets").notNull(),
+  reps: integer("reps").notNull(),
+  weight: real("weight"),
+  totalVolume: real("total_volume"),
+  setData: jsonb("set_data").$type<{ weight: number; reps: number; completed: boolean }[]>(),
+});
+
 // Relations
 export const workoutsRelations = relations(workouts, ({ many }) => ({
   days: many(workoutDays),
@@ -57,6 +72,7 @@ export const exercisesRelations = relations(exercises, ({ one }) => ({
 export const insertWorkoutSchema = createInsertSchema(workouts).omit({ id: true, createdAt: true });
 export const insertDaySchema = createInsertSchema(workoutDays).omit({ id: true });
 export const insertExerciseSchema = createInsertSchema(exercises).omit({ id: true });
+export const insertWorkoutLogSchema = createInsertSchema(workoutLogs).omit({ id: true, completedAt: true });
 
 // Types
 export type Workout = typeof workouts.$inferSelect;
@@ -65,3 +81,5 @@ export type WorkoutDay = typeof workoutDays.$inferSelect;
 export type InsertDay = z.infer<typeof insertDaySchema>;
 export type Exercise = typeof exercises.$inferSelect;
 export type InsertExercise = z.infer<typeof insertExerciseSchema>;
+export type WorkoutLog = typeof workoutLogs.$inferSelect;
+export type InsertWorkoutLog = z.infer<typeof insertWorkoutLogSchema>;
