@@ -13,7 +13,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { path: "/", label: "Workouts", icon: Home },
-  { path: "/progress", label: "Progress", icon: TrendingUp, coming: true },
+  { path: "/progress", label: "Progress", icon: TrendingUp },
 ];
 
 export function Layout({ children }: { children: ReactNode }) {

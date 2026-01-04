@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Home from "@/pages/Home";
 import WorkoutDetail from "@/pages/WorkoutDetail";
+import Progress from "@/pages/Progress";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -12,6 +13,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/workout/:id" component={WorkoutDetail} />
+      <Route path="/progress" component={Progress} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -1,5 +1,5 @@
 import { useRoute } from "wouter";
-import { useWorkout, useDeleteDay, useReorderExercises, useDuplicateDay } from "@/hooks/use-workouts";
+import { useWorkout, useDeleteDay, useReorderExercises, useDuplicateDay, useCompleteDay } from "@/hooks/use-workouts";
 import { Layout } from "@/components/Layout";
 import { AddDayDialog } from "@/components/AddDayDialog";
 import { AddExerciseDialog } from "@/components/AddExerciseDialog";
@@ -7,7 +7,7 @@ import { ExerciseItem } from "@/components/ExerciseItem";
 import { RestTimer } from "@/components/RestTimer";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronLeft, Trash2, CalendarDays, Copy, ArrowRight } from "lucide-react";
+import { ChevronLeft, Trash2, CalendarDays, Copy, CheckCircle2 } from "lucide-react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
@@ -27,6 +27,7 @@ export default function WorkoutDetail() {
   const deleteDay = useDeleteDay();
   const duplicateDay = useDuplicateDay();
   const reorderExercises = useReorderExercises();
+  const completeDay = useCompleteDay();
   const { toast } = useToast();
   
   const sensors = useSensors(
@@ -239,8 +240,34 @@ export default function WorkoutDetail() {
                       )}
                       
                       {day.exercises.length > 0 && (
-                        <div className="pt-4">
+                        <div className="pt-4 flex flex-col sm:flex-row gap-3">
                           <AddExerciseDialog dayId={day.id} workoutId={workout.id} />
+                          <Button
+                            variant="default"
+                            className="w-full sm:w-auto font-bold"
+                            onClick={() => {
+                              completeDay.mutate({ workoutId: workout.id, dayId: day.id }, {
+                                onSuccess: () => {
+                                  toast({ 
+                                    title: "Workout Logged!", 
+                                    description: "Your progress has been saved. View it in the Progress tab." 
+                                  });
+                                },
+                                onError: () => {
+                                  toast({ 
+                                    title: "Error", 
+                                    description: "Failed to log workout", 
+                                    variant: "destructive" 
+                                  });
+                                }
+                              });
+                            }}
+                            disabled={completeDay.isPending}
+                            data-testid="button-log-workout"
+                          >
+                            <CheckCircle2 className="w-4 h-4 mr-2" />
+                            {completeDay.isPending ? "Logging..." : "Log Workout"}
+                          </Button>
                         </div>
                       )}
                     </div>

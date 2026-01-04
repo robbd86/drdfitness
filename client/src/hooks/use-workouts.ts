@@ -184,3 +184,44 @@ export function useReorderExercises() {
     },
   });
 }
+
+// --- Workout Logs (Progress Tracking) ---
+
+export function useWorkoutLogs() {
+  return useQuery({
+    queryKey: ["/api/logs"],
+    queryFn: async () => {
+      const res = await fetch("/api/logs");
+      if (!res.ok) throw new Error("Failed to fetch workout logs");
+      return res.json();
+    },
+  });
+}
+
+export function useExerciseLogs(exerciseName: string) {
+  return useQuery({
+    queryKey: ["/api/logs/exercise", exerciseName],
+    queryFn: async () => {
+      const res = await fetch(`/api/logs/exercise/${encodeURIComponent(exerciseName)}`);
+      if (!res.ok) throw new Error("Failed to fetch exercise logs");
+      return res.json();
+    },
+    enabled: !!exerciseName,
+  });
+}
+
+export function useCompleteDay() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ workoutId, dayId }: { workoutId: number; dayId: number }) => {
+      const res = await fetch(`/api/workouts/${workoutId}/days/${dayId}/complete`, {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error("Failed to log completed day");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/logs"] });
+    },
+  });
+}
