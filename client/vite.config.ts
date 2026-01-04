@@ -4,6 +4,7 @@ import path from "path";
 
 export default defineConfig({
   plugins: [react()],
+
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
@@ -14,15 +15,17 @@ export default defineConfig({
       "@domain": path.resolve(__dirname, "src/domain"),
       "@services": path.resolve(__dirname, "src/services"),
       "@ui": path.resolve(__dirname, "src/components/ui"),
+      "@shared": path.resolve(__dirname, "../shared"),
+      "@assets": path.resolve(__dirname, "../attached_assets"),
     },
   },
+
   server: {
     host: "0.0.0.0",
     port: 5000,
     strictPort: true,
 
-    // 🔴 THIS IS THE FIX
-    allowedHosts: "all",
+    allowedHosts: true,
 
     proxy: {
       "/api": {
@@ -32,5 +35,3 @@ export default defineConfig({
     },
   },
 });
-
-

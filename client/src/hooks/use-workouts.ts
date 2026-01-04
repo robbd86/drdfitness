@@ -1,6 +1,8 @@
+// client/src/hooks/use-workouts.ts
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import { type InsertWorkout, type InsertDay, type InsertExercise } from "@shared/schema";
+import { apiGet, apiPost, apiPatch, apiDelete } from "@/lib/apiFetch";
 
 // --- Workouts ---
 
@@ -8,24 +10,19 @@ export function useWorkouts() {
   return useQuery({
     queryKey: [api.workouts.list.path],
     queryFn: async () => {
-      const res = await fetch(api.workouts.list.path);
-      if (!res.ok) throw new Error("Failed to fetch workouts");
-      return api.workouts.list.responses[200].parse(await res.json());
+      return apiGet(api.workouts.list.path, api.workouts.list.responses[200]);
     },
   });
 }
 
-export function useWorkout(id: number) {
+export function useWorkout(id?: number) {
   return useQuery({
     queryKey: [api.workouts.get.path, id],
+    enabled: typeof id === "number",
     queryFn: async () => {
-      const url = buildUrl(api.workouts.get.path, { id });
-      const res = await fetch(url);
-      if (res.status === 404) return null;
-      if (!res.ok) throw new Error("Failed to fetch workout");
-      return api.workouts.get.responses[200].parse(await res.json());
+      const url = buildUrl(api.workouts.get.path, { id: id as number });
+      return apiGet(url, api.workouts.get.responses[200]);
     },
-    enabled: !!id,
   });
 }
 
@@ -33,13 +30,7 @@ export function useCreateWorkout() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: InsertWorkout) => {
-      const res = await fetch(api.workouts.create.path, {
-        method: api.workouts.create.method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error("Failed to create workout");
-      return api.workouts.create.responses[201].parse(await res.json());
+      return apiPost(api.workouts.create.path, data, api.workouts.create.responses[201]);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.workouts.list.path] });
@@ -52,8 +43,7 @@ export function useDeleteWorkout() {
   return useMutation({
     mutationFn: async (id: number) => {
       const url = buildUrl(api.workouts.delete.path, { id });
-      const res = await fetch(url, { method: api.workouts.delete.method });
-      if (!res.ok) throw new Error("Failed to delete workout");
+      return apiDelete(url, api.workouts.delete.responses[204]);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.workouts.list.path] });
@@ -68,16 +58,12 @@ export function useCreateDay() {
   return useMutation({
     mutationFn: async ({ workoutId, ...data }: InsertDay & { workoutId: number }) => {
       const url = buildUrl(api.days.create.path, { workoutId });
-      const res = await fetch(url, {
-        method: api.days.create.method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error("Failed to create day");
-      return api.days.create.responses[201].parse(await res.json());
+      return apiPost(url, data, api.days.create.responses[201]);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: [api.workouts.get.path, variables.workoutId] });
+      queryClient.invalidateQueries({
+        queryKey: [api.workouts.get.path, variables.workoutId],
+      });
       queryClient.invalidateQueries({ queryKey: [api.workouts.list.path] });
     },
   });
@@ -87,12 +73,13 @@ export function useDuplicateDay() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, workoutId }: { id: number; workoutId: number }) => {
-      const res = await fetch(`/api/days/${id}/duplicate`, { method: "POST" });
-      if (!res.ok) throw new Error("Failed to duplicate day");
-      return res.json();
+      const url = buildUrl(api.days.duplicate.path, { id });
+      return apiPost(url, undefined, api.days.duplicate.responses[201]);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: [api.workouts.get.path, variables.workoutId] });
+      queryClient.invalidateQueries({
+        queryKey: [api.workouts.get.path, variables.workoutId],
+      });
       queryClient.invalidateQueries({ queryKey: [api.workouts.list.path] });
     },
   });
@@ -103,11 +90,12 @@ export function useDeleteDay() {
   return useMutation({
     mutationFn: async ({ id, workoutId }: { id: number; workoutId: number }) => {
       const url = buildUrl(api.days.delete.path, { id });
-      const res = await fetch(url, { method: api.days.delete.method });
-      if (!res.ok) throw new Error("Failed to delete day");
+      return apiDelete(url, api.days.delete.responses[204]);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: [api.workouts.get.path, variables.workoutId] });
+      queryClient.invalidateQueries({
+        queryKey: [api.workouts.get.path, variables.workoutId],
+      });
       queryClient.invalidateQueries({ queryKey: [api.workouts.list.path] });
     },
   });
@@ -118,18 +106,19 @@ export function useDeleteDay() {
 export function useCreateExercise() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ dayId, workoutId, ...data }: InsertExercise & { dayId: number, workoutId: number }) => {
+    mutationFn: async ({
+      dayId,
+      workoutId,
+      ...data
+    }: InsertExercise & { dayId: number; workoutId: number }) => {
       const url = buildUrl(api.exercises.create.path, { dayId });
-      const res = await fetch(url, {
-        method: api.exercises.create.method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error("Failed to create exercise");
-      return api.exercises.create.responses[201].parse(await res.json());
+      return apiPost(url, data, api.exercises.create.responses[201]);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: [api.workouts.get.path, variables.workoutId] });
+      queryClient.invalidateQueries({
+        queryKey: [api.workouts.get.path, variables.workoutId],
+      });
+      queryClient.invalidateQueries({ queryKey: [api.workouts.list.path] });
     },
   });
 }
@@ -137,18 +126,19 @@ export function useCreateExercise() {
 export function useUpdateExercise() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, workoutId, ...updates }: { id: number, workoutId: number } & Partial<InsertExercise>) => {
+    mutationFn: async ({
+      id,
+      workoutId,
+      ...updates
+    }: { id: number; workoutId: number } & Partial<InsertExercise>) => {
       const url = buildUrl(api.exercises.update.path, { id });
-      const res = await fetch(url, {
-        method: api.exercises.update.method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updates),
-      });
-      if (!res.ok) throw new Error("Failed to update exercise");
-      return api.exercises.update.responses[200].parse(await res.json());
+      return apiPatch(url, updates, api.exercises.update.responses[200]);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: [api.workouts.get.path, variables.workoutId] });
+      queryClient.invalidateQueries({
+        queryKey: [api.workouts.get.path, variables.workoutId],
+      });
+      queryClient.invalidateQueries({ queryKey: [api.workouts.list.path] });
     },
   });
 }
@@ -158,11 +148,13 @@ export function useDeleteExercise() {
   return useMutation({
     mutationFn: async ({ id, workoutId }: { id: number; workoutId: number }) => {
       const url = buildUrl(api.exercises.delete.path, { id });
-      const res = await fetch(url, { method: api.exercises.delete.method });
-      if (!res.ok) throw new Error("Failed to delete exercise");
+      return apiDelete(url, api.exercises.delete.responses[204]);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: [api.workouts.get.path, variables.workoutId] });
+      queryClient.invalidateQueries({
+        queryKey: [api.workouts.get.path, variables.workoutId],
+      });
+      queryClient.invalidateQueries({ queryKey: [api.workouts.list.path] });
     },
   });
 }
@@ -170,43 +162,46 @@ export function useDeleteExercise() {
 export function useReorderExercises() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ dayId, exerciseIds }: { dayId: number; exerciseIds: number[] }) => {
-      const res = await fetch(`/api/days/${dayId}/exercises/reorder`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ exerciseIds }),
-      });
-      if (!res.ok) throw new Error("Failed to reorder exercises");
+    mutationFn: async ({
+      dayId,
+      workoutId,
+      exerciseIds,
+    }: {
+      dayId: number;
+      workoutId: number;
+      exerciseIds: number[];
+    }) => {
+      const url = buildUrl(api.exercises.reorder.path, { dayId });
+      return apiPost(url, { exerciseIds }, api.exercises.reorder.responses[200]);
     },
-    onSuccess: () => {
-       queryClient.invalidateQueries({ queryKey: [api.workouts.list.path] });
-       queryClient.invalidateQueries({ queryKey: [api.workouts.get.path] }); 
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: [api.workouts.get.path, variables.workoutId],
+      });
+      queryClient.invalidateQueries({ queryKey: [api.workouts.list.path] });
     },
   });
 }
 
-// --- Workout Logs (Progress Tracking) ---
+// --- Logs / Progress ---
 
 export function useWorkoutLogs() {
   return useQuery({
-    queryKey: ["/api/logs"],
+    queryKey: [api.logs.list.path],
     queryFn: async () => {
-      const res = await fetch("/api/logs");
-      if (!res.ok) throw new Error("Failed to fetch workout logs");
-      return res.json();
+      return apiGet(api.logs.list.path, api.logs.list.responses[200]);
     },
   });
 }
 
-export function useExerciseLogs(exerciseName: string) {
+export function useExerciseLogs(exerciseName?: string) {
   return useQuery({
-    queryKey: ["/api/logs/exercise", exerciseName],
-    queryFn: async () => {
-      const res = await fetch(`/api/logs/exercise/${encodeURIComponent(exerciseName)}`);
-      if (!res.ok) throw new Error("Failed to fetch exercise logs");
-      return res.json();
-    },
+    queryKey: [api.logs.byExercise.path, exerciseName],
     enabled: !!exerciseName,
+    queryFn: async () => {
+      const url = buildUrl(api.logs.byExercise.path, { name: exerciseName as string });
+      return apiGet(url, api.logs.byExercise.responses[200]);
+    },
   });
 }
 
@@ -214,14 +209,11 @@ export function useCompleteDay() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ workoutId, dayId }: { workoutId: number; dayId: number }) => {
-      const res = await fetch(`/api/workouts/${workoutId}/days/${dayId}/complete`, {
-        method: "POST",
-      });
-      if (!res.ok) throw new Error("Failed to log completed day");
-      return res.json();
+      // This route isn't in shared/routes.ts, so keep it explicit.
+      return apiPost(`/api/workouts/${workoutId}/days/${dayId}/complete`, undefined);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/logs"] });
+      queryClient.invalidateQueries({ queryKey: [api.logs.list.path] });
     },
   });
 }

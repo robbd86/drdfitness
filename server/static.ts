@@ -1,44 +1,25 @@
-import express, { type Express, type Response, type Request } from "express";
-import fs from "fs";
+// server/static.ts
+import type { Express } from "express";
+import express from "express";
 import path from "path";
+import { fileURLToPath } from "url";
+
+/**
+ * ESM-safe __dirname replacement
+ */
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(__dirname, "public");
-  if (!fs.existsSync(distPath)) {
-    throw new Error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`,
-    );
-  }
+  // This is where your frontend lives in THIS repo
+  // server/public is the correct location for dev + prod
+  const publicPath = path.resolve(__dirname, "public");
 
-  // Serve hashed assets (JS, CSS) with long cache and immutable
-  app.use(
-    "/assets",
-    express.static(path.join(distPath, "assets"), {
-      maxAge: "1y",
-      immutable: true,
-    })
-  );
+  app.use(express.static(publicPath));
 
-  // Serve other static files with short cache
-  app.use(
-    express.static(distPath, {
-      maxAge: "1h",
-      setHeaders: (res: Response, filePath: string) => {
-        // Never cache HTML, manifest, or service worker
-        if (
-          filePath.endsWith(".html") ||
-          filePath.endsWith("manifest.json") ||
-          filePath.endsWith("sw.js")
-        ) {
-          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-        }
-      },
-    })
-  );
-
-  // Fall through to index.html with no-cache headers
-  app.use("*", (_req: Request, res: Response) => {
-    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-    res.sendFile(path.resolve(distPath, "index.html"));
+  // SPA fallback
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(publicPath, "index.html"));
   });
 }
+

@@ -1,119 +1,116 @@
-import { z } from 'zod';
-import { insertWorkoutSchema, insertDaySchema, insertExerciseSchema, workouts, workoutDays, exercises } from './schema';
+// shared/routes.ts
+import { z } from "zod";
+import {
+  workoutSchema,
+  workoutWithDaysSchema,
+  workoutDaySchema,
+  exerciseSchema,
+  workoutLogSchema,
+} from "./schema";
 
-export const errorSchemas = {
-  validation: z.object({
-    message: z.string(),
-    field: z.string().optional(),
-  }),
-  notFound: z.object({
-    message: z.string(),
-  }),
-  internal: z.object({
-    message: z.string(),
-  }),
-};
+/* ----------------------------- Helpers ----------------------------- */
+
+export function buildUrl(
+  path: string,
+  params: Record<string, string | number>
+) {
+  return Object.entries(params).reduce(
+    (url, [key, value]) => url.replace(`:${key}`, String(value)),
+    path
+  );
+}
+
+/* ----------------------------- API ----------------------------- */
 
 export const api = {
   workouts: {
     list: {
-      method: 'GET' as const,
-      path: '/api/workouts',
+      path: "/api/workouts",
       responses: {
-        200: z.array(z.custom<typeof workouts.$inferSelect & { days: (typeof workoutDays.$inferSelect & { exercises: typeof exercises.$inferSelect[] })[] }>()),
+        200: z.array(workoutSchema),
       },
     },
     get: {
-      method: 'GET' as const,
-      path: '/api/workouts/:id',
+      path: "/api/workouts/:id",
       responses: {
-        200: z.custom<typeof workouts.$inferSelect & { days: (typeof workoutDays.$inferSelect & { exercises: typeof exercises.$inferSelect[] })[] }>(),
-        404: errorSchemas.notFound,
+        200: workoutWithDaysSchema,
       },
     },
     create: {
-      method: 'POST' as const,
-      path: '/api/workouts',
-      input: insertWorkoutSchema,
+      path: "/api/workouts",
       responses: {
-        201: z.custom<typeof workouts.$inferSelect>(),
-        400: errorSchemas.validation,
+        201: workoutSchema,
       },
     },
     delete: {
-      method: 'DELETE' as const,
-      path: '/api/workouts/:id',
+      path: "/api/workouts/:id",
       responses: {
         204: z.void(),
-        404: errorSchemas.notFound,
       },
     },
   },
+
   days: {
     create: {
-      method: 'POST' as const,
-      path: '/api/workouts/:workoutId/days',
-      input: insertDaySchema.omit({ workoutId: true }),
+      path: "/api/workouts/:workoutId/days",
       responses: {
-        201: z.custom<typeof workoutDays.$inferSelect>(),
-        400: errorSchemas.validation,
+        201: workoutDaySchema,
+      },
+    },
+    delete: {
+      path: "/api/days/:id",
+      responses: {
+        204: z.void(),
       },
     },
     duplicate: {
-      method: 'POST' as const,
-      path: '/api/days/:id/duplicate',
+      path: "/api/days/:id/duplicate",
       responses: {
-        201: z.custom<typeof workoutDays.$inferSelect>(),
-        404: errorSchemas.notFound,
-      },
-    },
-    delete: {
-      method: 'DELETE' as const,
-      path: '/api/days/:id',
-      responses: {
-        204: z.void(),
-        404: errorSchemas.notFound,
+        201: workoutDaySchema,
       },
     },
   },
+
   exercises: {
     create: {
-      method: 'POST' as const,
-      path: '/api/days/:dayId/exercises',
-      input: insertExerciseSchema.omit({ dayId: true }),
+      path: "/api/days/:dayId/exercises",
       responses: {
-        201: z.custom<typeof exercises.$inferSelect>(),
-        400: errorSchemas.validation,
+        201: exerciseSchema,
       },
     },
     update: {
-      method: 'PATCH' as const,
-      path: '/api/exercises/:id',
-      input: insertExerciseSchema.partial(),
+      path: "/api/exercises/:id",
       responses: {
-        200: z.custom<typeof exercises.$inferSelect>(),
-        404: errorSchemas.notFound,
+        200: exerciseSchema,
       },
     },
     delete: {
-      method: 'DELETE' as const,
-      path: '/api/exercises/:id',
+      path: "/api/exercises/:id",
       responses: {
         204: z.void(),
-        404: errorSchemas.notFound,
       },
     },
-  }
+    reorder: {
+      path: "/api/days/:dayId/exercises/reorder",
+      responses: {
+        200: z.object({ success: z.boolean() }),
+      },
+    },
+  },
+
+  logs: {
+    list: {
+      path: "/api/logs",
+      responses: {
+        200: z.array(workoutLogSchema),
+      },
+    },
+    byExercise: {
+      path: "/api/logs/exercise/:name",
+      responses: {
+        200: z.array(workoutLogSchema),
+      },
+    },
+  },
 };
 
-export function buildUrl(path: string, params?: Record<string, string | number>): string {
-  let url = path;
-  if (params) {
-    Object.entries(params).forEach(([key, value]) => {
-      if (url.includes(`:${key}`)) {
-        url = url.replace(`:${key}`, String(value));
-      }
-    });
-  }
-  return url;
-}

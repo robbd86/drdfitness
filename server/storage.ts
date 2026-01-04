@@ -1,308 +1,268 @@
+// server/storage.ts
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
 import {
-  workouts, workoutDays, exercises, workoutLogs,
-  type Workout, type InsertWorkout,
-  type WorkoutDay, type InsertDay,
-  type Exercise, type InsertExercise,
-  type WorkoutLog, type InsertWorkoutLog
+  workouts,
+  workoutDays,
+  exercises,
+  workoutLogs,
+  type InsertWorkout,
+  type InsertDay,
+  type InsertExercise,
 } from "@shared/schema";
+import { eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
-const setDataSchema = z.object({
-  weight: z.number().optional(),
-  reps: z.number().optional(),
-  completed: z.boolean().optional(),
-}).passthrough();
+/* ----------------------------- Validation ----------------------------- */
 
-const exerciseImportSchema = z.object({
-  name: z.string(),
-  sets: z.number(),
-  reps: z.number(),
-  weight: z.number().nullable().optional(),
-  notes: z.string().nullable().optional(),
-  order: z.number().optional(),
-  completed: z.boolean().optional(),
-  setData: z.array(setDataSchema).nullable().optional(),
-  useCustomSets: z.boolean().nullable().optional(),
-});
+const setDataSchema = z
+  .array(
+    z
+      .object({
+        reps: z.number().optional(),
+        weight: z.number().optional(),
+        completed: z.boolean().optional(),
+      })
+      .passthrough()
+  )
+  .optional();
 
-const dayImportSchema = z.object({
-  name: z.string(),
-  exercises: z.array(exerciseImportSchema).optional(),
-});
+/* ----------------------------- Workouts ----------------------------- */
 
-const workoutImportSchema = z.object({
-  name: z.string(),
-  description: z.string().nullable().optional(),
-  days: z.array(dayImportSchema).optional(),
-});
-
-export const importDataSchema = z.object({
-  workouts: z.array(workoutImportSchema),
-});
-
-export interface IStorage {
-  // Workouts
-  getWorkouts(): Promise<(Workout & { days: (WorkoutDay & { exercises: Exercise[] })[] })[]>;
-  getWorkout(id: number): Promise<(Workout & { days: (WorkoutDay & { exercises: Exercise[] })[] }) | undefined>;
-  createWorkout(workout: InsertWorkout): Promise<Workout>;
-  deleteWorkout(id: number): Promise<void>;
-
-  // Days
-  createDay(day: InsertDay): Promise<WorkoutDay>;
-  duplicateDay(dayId: number): Promise<WorkoutDay>;
-  deleteDay(id: number): Promise<void>;
-
-  // Exercises
-  createExercise(exercise: InsertExercise): Promise<Exercise>;
-  updateExercise(id: number, updates: Partial<InsertExercise>): Promise<Exercise | undefined>;
-  deleteExercise(id: number): Promise<void>;
-  reorderExercises(dayId: number, exerciseIds: number[]): Promise<void>;
-
-  // Workout Logs (Progression)
-  getWorkoutLogs(): Promise<WorkoutLog[]>;
-  getLogsByExerciseName(exerciseName: string): Promise<WorkoutLog[]>;
-  createWorkoutLog(log: InsertWorkoutLog): Promise<WorkoutLog>;
-  logCompletedDay(workoutId: number, dayId: number): Promise<WorkoutLog[]>;
-
-  // Data management
-  resetAllData(): Promise<void>;
-  importData(data: { workouts: any[] }, clearFirst?: boolean): Promise<void>;
+export async function listWorkouts() {
+  return db.select().from(workouts);
 }
 
-export class DatabaseStorage implements IStorage {
-  async getWorkouts() {
-    return await db.query.workouts.findMany({
-      with: {
-        days: {
-          with: {
-            exercises: {
-              orderBy: (exercises, { asc }) => [asc(exercises.order)],
-            }
+export async function getWorkout(id: number) {
+  const workout = await db.query.workouts.findFirst({
+    where: eq(workouts.id, id),
+    with: {
+      days: {
+        orderBy: (d, { asc }) => [asc(d.order)],
+        with: {
+          exercises: {
+            orderBy: (e, { asc }) => [asc(e.order)],
           },
-          orderBy: (days, { asc }) => [asc(days.order)],
         },
       },
-      orderBy: (workouts, { desc }) => [desc(workouts.createdAt)],
-    });
-  }
+    },
+  });
 
-  async getWorkout(id: number) {
-    return await db.query.workouts.findFirst({
-      where: eq(workouts.id, id),
+  return workout ?? null;
+}
+
+export async function createWorkout(data: InsertWorkout) {
+  const [workout] = await db.insert(workouts).values(data).returning();
+  return workout;
+}
+
+export async function deleteWorkout(id: number) {
+  await db.delete(workouts).where(eq(workouts.id, id));
+}
+
+/* ----------------------------- Days ----------------------------- */
+
+export async function createDay(workoutId: number, data: InsertDay) {
+  const [day] = await db
+    .insert(workoutDays)
+    .values({ ...data, workoutId })
+    .returning();
+  return day;
+}
+
+export async function deleteDay(id: number) {
+  await db.delete(workoutDays).where(eq(workoutDays.id, id));
+}
+
+export async function duplicateDay(id: number) {
+  return db.transaction(async (tx) => {
+    const day = await tx.query.workoutDays.findFirst({
+      where: eq(workoutDays.id, id),
       with: {
-        days: {
-          with: {
-            exercises: {
-              orderBy: (exercises, { asc }) => [asc(exercises.order)],
-            }
-          },
-          orderBy: (days, { asc }) => [asc(days.order)],
-        },
+        exercises: true,
       },
     });
-  }
 
-  async createWorkout(workout: InsertWorkout) {
-    const [newWorkout] = await db.insert(workouts).values(workout).returning();
-    return newWorkout;
-  }
-
-  async deleteWorkout(id: number) {
-    await db.delete(workouts).where(eq(workouts.id, id));
-  }
-
-  async createDay(day: InsertDay) {
-    const existing = await db.query.workoutDays.findMany({
-      where: eq(workoutDays.workoutId, day.workoutId),
-    });
-    const maxOrder = existing.length > 0 ? Math.max(...existing.map(d => d.order)) : -1;
-    const [newDay] = await db.insert(workoutDays).values({
-      ...day,
-      order: maxOrder + 1
-    }).returning();
-    return newDay;
-  }
-
-  async duplicateDay(dayId: number) {
-    const sourceDay = await db.query.workoutDays.findFirst({
-      where: eq(workoutDays.id, dayId),
-      with: { exercises: true }
-    });
-    if (!sourceDay) throw new Error("Day not found");
-
-    const newDay = await this.createDay({
-      workoutId: sourceDay.workoutId,
-      name: `${sourceDay.name} (Copy)`,
-    });
-
-    for (const ex of sourceDay.exercises) {
-      await this.createExercise({
-        dayId: newDay.id,
-        name: ex.name,
-        sets: ex.sets,
-        reps: ex.reps,
-        weight: ex.weight,
-        notes: ex.notes,
-        order: ex.order,
-        completed: false,
-        setData: ex.setData,
-        useCustomSets: ex.useCustomSets
-      });
-    }
-
-    return newDay;
-  }
-
-  async deleteDay(id: number) {
-    await db.delete(workoutDays).where(eq(workoutDays.id, id));
-  }
-
-  async createExercise(exercise: InsertExercise) {
-    // Get max order
-    const existing = await db.query.exercises.findMany({
-      where: eq(exercises.dayId, exercise.dayId),
-    });
-    const maxOrder = existing.length > 0 ? Math.max(...existing.map(e => e.order)) : -1;
-    
-    const [newExercise] = await db.insert(exercises).values({
-      ...exercise,
-      setData: exercise.setData as { weight: number; reps: number; completed: boolean }[] | undefined,
-      order: maxOrder + 1,
-    }).returning();
-    return newExercise;
-  }
-
-  async updateExercise(id: number, updates: Partial<InsertExercise>) {
-    const typedUpdates = {
-      ...updates,
-      setData: updates.setData as { weight: number; reps: number; completed: boolean }[] | undefined,
-    };
-    const [updated] = await db.update(exercises)
-      .set(typedUpdates)
-      .where(eq(exercises.id, id))
-      .returning();
-    return updated;
-  }
-
-  async deleteExercise(id: number) {
-    await db.delete(exercises).where(eq(exercises.id, id));
-  }
-
-  async reorderExercises(dayId: number, exerciseIds: number[]) {
-    await db.transaction(async (tx) => {
-      for (let i = 0; i < exerciseIds.length; i++) {
-        await tx.update(exercises)
-          .set({ order: i })
-          .where(eq(exercises.id, exerciseIds[i]));
-      }
-    });
-  }
-
-  async getWorkoutLogs() {
-    return await db.select().from(workoutLogs).orderBy(desc(workoutLogs.completedAt));
-  }
-
-  async getLogsByExerciseName(exerciseName: string) {
-    return await db.select()
-      .from(workoutLogs)
-      .where(eq(workoutLogs.exerciseName, exerciseName))
-      .orderBy(desc(workoutLogs.completedAt));
-  }
-
-  async createWorkoutLog(log: InsertWorkoutLog) {
-    const [newLog] = await db.insert(workoutLogs).values({
-      ...log,
-      setData: log.setData as { weight: number; reps: number; completed: boolean }[] | undefined,
-    }).returning();
-    return newLog;
-  }
-
-  async logCompletedDay(workoutId: number, dayId: number) {
-    const workout = await this.getWorkout(workoutId);
-    if (!workout) throw new Error("Workout not found");
-    
-    const day = workout.days.find(d => d.id === dayId);
     if (!day) throw new Error("Day not found");
 
-    const logs: WorkoutLog[] = [];
-    for (const exercise of day.exercises) {
-      const maxWeight = exercise.setData 
-        ? Math.max(...exercise.setData.map(s => s.weight || 0))
-        : exercise.weight || 0;
-      
-      const totalVolume = exercise.setData
-        ? exercise.setData.reduce((sum, s) => sum + (s.weight || 0) * (s.reps || 0), 0)
-        : (exercise.weight || 0) * exercise.reps * exercise.sets;
+    const [newDay] = await tx
+      .insert(workoutDays)
+      .values({
+        workoutId: day.workoutId,
+        name: `${day.name} (Copy)`,
+        order: day.order + 1,
+      })
+      .returning();
 
-      const log = await this.createWorkoutLog({
-        exerciseId: exercise.id,
-        exerciseName: exercise.name,
-        workoutId: workout.id,
-        workoutName: workout.name,
-        dayName: day.name,
-        sets: exercise.sets,
-        reps: exercise.reps,
-        weight: maxWeight,
-        totalVolume,
-        setData: exercise.setData,
-      });
-      logs.push(log);
+    if (day.exercises.length) {
+      await tx.insert(exercises).values(
+        day.exercises.map((e) => ({
+          dayId: newDay.id,
+          name: e.name,
+          sets: e.sets,
+          reps: e.reps,
+          weight: e.weight,
+          notes: e.notes,
+          order: e.order,
+          useCustomSets: e.useCustomSets,
+          setData: e.setData,
+        }))
+      );
     }
 
-    return logs;
-  }
-
-  async resetAllData() {
-    await db.delete(exercises);
-    await db.delete(workoutDays);
-    await db.delete(workouts);
-  }
-
-  async importData(data: { workouts: any[] }, clearFirst: boolean = false) {
-    const validated = importDataSchema.parse(data);
-    
-    await db.transaction(async (tx) => {
-      if (clearFirst) {
-        await tx.delete(exercises);
-        await tx.delete(workoutDays);
-        await tx.delete(workouts);
-      }
-
-      for (const w of validated.workouts) {
-        const [newWorkout] = await tx.insert(workouts).values({
-          name: w.name,
-          description: w.description,
-        }).returning();
-
-        let dayOrder = 0;
-        for (const day of w.days || []) {
-          const [newDay] = await tx.insert(workoutDays).values({
-            workoutId: newWorkout.id,
-            name: day.name,
-            order: dayOrder++,
-          }).returning();
-
-          let exOrder = 0;
-          for (const ex of day.exercises || []) {
-            await tx.insert(exercises).values({
-              dayId: newDay.id,
-              name: ex.name,
-              sets: ex.sets,
-              reps: ex.reps,
-              weight: ex.weight ?? null,
-              notes: ex.notes ?? null,
-              order: ex.order ?? exOrder++,
-              completed: false,
-              setData: ex.setData as { weight: number; reps: number; completed: boolean }[] | null,
-              useCustomSets: ex.useCustomSets ?? null,
-            });
-          }
-        }
-      }
-    });
-  }
+    return newDay;
+  });
 }
 
-export const storage = new DatabaseStorage();
+/* ----------------------------- Exercises ----------------------------- */
+
+export async function createExercise(dayId: number, data: InsertExercise) {
+  setDataSchema.parse(data.setData);
+
+  const [exercise] = await db
+    .insert(exercises)
+    .values({ ...data, dayId })
+    .returning();
+
+  return exercise;
+}
+
+export async function updateExercise(id: number, updates: Partial<InsertExercise>) {
+  if ("setData" in updates) {
+    setDataSchema.parse(updates.setData);
+  }
+
+  const [exercise] = await db
+    .update(exercises)
+    .set(updates)
+    .where(eq(exercises.id, id))
+    .returning();
+
+  return exercise;
+}
+
+export async function deleteExercise(id: number) {
+  await db.delete(exercises).where(eq(exercises.id, id));
+}
+
+export async function reorderExercises(dayId: number, exerciseIds: number[]) {
+  return db.transaction(async (tx) => {
+    const existing = await tx
+      .select({ id: exercises.id })
+      .from(exercises)
+      .where(eq(exercises.dayId, dayId));
+
+    const validIds = new Set(existing.map((e) => e.id));
+
+    exerciseIds.forEach((id) => {
+      if (!validIds.has(id)) {
+        throw new Error("Invalid exercise ID in reorder list");
+      }
+    });
+
+    for (let i = 0; i < exerciseIds.length; i++) {
+      await tx
+        .update(exercises)
+        .set({ order: i })
+        .where(eq(exercises.id, exerciseIds[i]));
+    }
+  });
+}
+
+/* ----------------------------- Progress / Logs ----------------------------- */
+
+export async function logCompletedDay(workoutId: number, dayId: number) {
+  return db.transaction(async (tx) => {
+    const workout = await tx.query.workouts.findFirst({
+      where: eq(workouts.id, workoutId),
+    });
+
+    const day = await tx.query.workoutDays.findFirst({
+      where: eq(workoutDays.id, dayId),
+      with: {
+        exercises: true,
+      },
+    });
+
+    if (!workout || !day) throw new Error("Workout or day not found");
+
+    const now = new Date();
+
+    if (day.exercises.length) {
+      await tx.insert(workoutLogs).values(
+        day.exercises.map((e) => ({
+          workoutId,
+          workoutName: workout.name,
+          dayName: day.name,
+          exerciseId: e.id,
+          exerciseName: e.name,
+          sets: e.sets,
+          reps: e.reps,
+          weight: e.weight,
+          setData: e.setData,
+          totalVolume:
+            e.setData?.reduce(
+              (sum, s) => sum + (s.reps ?? 0) * (s.weight ?? 0),
+              0
+            ) ?? null,
+          completedAt: now,
+        }))
+      );
+    }
+
+    await tx
+      .update(exercises)
+      .set({ completed: true })
+      .where(eq(exercises.dayId, dayId));
+  });
+}
+
+/* ----------------------------- Data Management ----------------------------- */
+
+export async function exportData() {
+  const [allWorkouts, allDays, allExercises, allLogs] = await Promise.all([
+    db.select().from(workouts),
+    db.select().from(workoutDays),
+    db.select().from(exercises),
+    db.select().from(workoutLogs),
+  ]);
+
+  return {
+    workouts: allWorkouts,
+    days: allDays,
+    exercises: allExercises,
+    logs: allLogs,
+  };
+}
+
+export async function importData(
+  data: {
+    workouts: InsertWorkout[];
+    days: InsertDay[];
+    exercises: InsertExercise[];
+    logs?: any[];
+  },
+  replaceExisting: boolean
+) {
+  return db.transaction(async (tx) => {
+    if (replaceExisting) {
+      await tx.delete(workoutLogs);
+      await tx.delete(exercises);
+      await tx.delete(workoutDays);
+      await tx.delete(workouts);
+    }
+
+    if (data.workouts?.length) await tx.insert(workouts).values(data.workouts);
+    if (data.days?.length) await tx.insert(workoutDays).values(data.days);
+    if (data.exercises?.length) await tx.insert(exercises).values(data.exercises);
+    if (data.logs?.length) await tx.insert(workoutLogs).values(data.logs);
+  });
+}
+
+export async function resetData() {
+  return db.transaction(async (tx) => {
+    await tx.delete(workoutLogs);
+    await tx.delete(exercises);
+    await tx.delete(workoutDays);
+    await tx.delete(workouts);
+  });
+}

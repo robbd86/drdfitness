@@ -1,253 +1,193 @@
-import type { Express } from "express";
-import type { Server } from "http";
-import { storage } from "./storage";
-import { api } from "@shared/routes";
-import { z } from "zod";
+// server/routes.ts
+import { Router } from "express";
+import {
+  listWorkouts,
+  getWorkout,
+  createWorkout,
+  deleteWorkout,
+  createDay,
+  deleteDay,
+  duplicateDay,
+  createExercise,
+  updateExercise,
+  deleteExercise,
+  reorderExercises,
+  logCompletedDay,
+  exportData,
+  importData,
+  resetData,
+} from "./storage";
 
-export async function registerRoutes(
-  httpServer: Server,
-  app: Express
-): Promise<Server> {
+import {
+  insertWorkoutSchema,
+  insertDaySchema,
+  insertExerciseSchema,
+} from "@shared/schema";
 
-  app.get(api.workouts.list.path, async (req, res) => {
-    const workouts = await storage.getWorkouts();
-    res.json(workouts);
-  });
+const router = Router();
 
-  app.get(api.workouts.get.path, async (req, res) => {
-    const workout = await storage.getWorkout(Number(req.params.id));
-    if (!workout) {
-      return res.status(404).json({ message: "Workout not found" });
-    }
+/* ----------------------------- Workouts ----------------------------- */
+
+router.get("/workouts", async (_req, res, next) => {
+  try {
+    res.json(await listWorkouts());
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/workouts/:id", async (req, res, next) => {
+  try {
+    const workout = await getWorkout(Number(req.params.id));
+    if (!workout) return res.status(404).json({ message: "Workout not found" });
     res.json(workout);
-  });
+  } catch (err) {
+    next(err);
+  }
+});
 
-  app.post(api.workouts.create.path, async (req, res) => {
+router.post("/workouts", async (req, res, next) => {
+  try {
+    const data = insertWorkoutSchema.parse(req.body);
+    const workout = await createWorkout(data);
+    res.status(201).json(workout);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete("/workouts/:id", async (req, res, next) => {
+  try {
+    await deleteWorkout(Number(req.params.id));
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ----------------------------- Days ----------------------------- */
+
+router.post("/workouts/:workoutId/days", async (req, res, next) => {
+  try {
+    const data = insertDaySchema.parse(req.body);
+    const day = await createDay(Number(req.params.workoutId), data);
+    res.status(201).json(day);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete("/days/:id", async (req, res, next) => {
+  try {
+    await deleteDay(Number(req.params.id));
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/days/:id/duplicate", async (req, res, next) => {
+  try {
+    const day = await duplicateDay(Number(req.params.id));
+    res.status(201).json(day);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ----------------------------- Exercises ----------------------------- */
+
+router.post("/days/:dayId/exercises", async (req, res, next) => {
+  try {
+    const data = insertExerciseSchema.parse(req.body);
+    const exercise = await createExercise(Number(req.params.dayId), data);
+    res.status(201).json(exercise);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.patch("/exercises/:id", async (req, res, next) => {
+  try {
+    const exercise = await updateExercise(Number(req.params.id), req.body);
+    res.json(exercise);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete("/exercises/:id", async (req, res, next) => {
+  try {
+    await deleteExercise(Number(req.params.id));
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/days/:dayId/exercises/reorder", async (req, res, next) => {
+  try {
+    await reorderExercises(Number(req.params.dayId), req.body.exerciseIds);
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ----------------------------- Progress / Logs ----------------------------- */
+
+router.post(
+  "/workouts/:workoutId/days/:dayId/complete",
+  async (req, res, next) => {
     try {
-      const input = api.workouts.create.input.parse(req.body);
-      const workout = await storage.createWorkout(input);
-      res.status(201).json(workout);
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        return res.status(400).json({
-          message: err.errors[0].message,
-          field: err.errors[0].path.join('.'),
-        });
-      }
-      throw err;
-    }
-  });
-
-  app.delete(api.workouts.delete.path, async (req, res) => {
-    await storage.deleteWorkout(Number(req.params.id));
-    res.status(204).send();
-  });
-
-  app.post(api.days.create.path, async (req, res) => {
-    try {
-      const input = api.days.create.input.parse(req.body);
-      // Ensure we add the workoutId from the path
-      const day = await storage.createDay({
-        ...input,
-        workoutId: Number(req.params.workoutId)
-      });
-      res.status(201).json(day);
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        return res.status(400).json({
-          message: err.errors[0].message,
-          field: err.errors[0].path.join('.'),
-        });
-      }
-      throw err;
-    }
-  });
-
-  app.delete(api.days.delete.path, async (req, res) => {
-    await storage.deleteDay(Number(req.params.id));
-    res.status(204).send();
-  });
-
-  app.post("/api/days/:id/duplicate", async (req, res) => {
-    try {
-      const day = await storage.duplicateDay(Number(req.params.id));
-      res.status(201).json(day);
-    } catch (err) {
-      res.status(404).json({ message: "Day not found" });
-    }
-  });
-
-  app.post(api.exercises.create.path, async (req, res) => {
-    try {
-      const input = api.exercises.create.input.parse(req.body);
-      const exercise = await storage.createExercise({
-        ...input,
-        dayId: Number(req.params.dayId)
-      });
-      res.status(201).json(exercise);
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        return res.status(400).json({
-          message: err.errors[0].message,
-          field: err.errors[0].path.join('.'),
-        });
-      }
-      throw err;
-    }
-  });
-
-  app.patch(api.exercises.update.path, async (req, res) => {
-    try {
-      const input = api.exercises.update.input.parse(req.body);
-      const exercise = await storage.updateExercise(Number(req.params.id), input);
-      if (!exercise) {
-        return res.status(404).json({ message: "Exercise not found" });
-      }
-      res.json(exercise);
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        return res.status(400).json({
-          message: err.errors[0].message,
-          field: err.errors[0].path.join('.'),
-        });
-      }
-      throw err;
-    }
-  });
-
-  app.post("/api/days/:dayId/exercises/reorder", async (req, res) => {
-    try {
-      const { exerciseIds } = z.object({ exerciseIds: z.array(z.number()) }).parse(req.body);
-      await storage.reorderExercises(Number(req.params.dayId), exerciseIds);
-      res.status(200).json({ message: "Exercises reordered" });
-    } catch (err) {
-       if (err instanceof z.ZodError) {
-        return res.status(400).json({
-          message: err.errors[0].message,
-          field: err.errors[0].path.join('.'),
-        });
-      }
-      throw err;
-    }
-  });
-
-  app.delete(api.exercises.delete.path, async (req, res) => {
-    await storage.deleteExercise(Number(req.params.id));
-    res.status(204).send();
-  });
-
-  // Data Management Routes
-  app.get("/api/data/export", async (req, res) => {
-    const workouts = await storage.getWorkouts();
-    res.json({ workouts, exportedAt: new Date().toISOString() });
-  });
-
-  app.post("/api/data/import", async (req, res) => {
-    try {
-      const { workouts, replaceExisting } = req.body;
-      await storage.importData({ workouts }, replaceExisting === true);
-      res.status(200).json({ message: "Data imported successfully" });
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Invalid import data format", 
-          errors: err.errors.map(e => `${e.path.join('.')}: ${e.message}`)
-        });
-      }
-      console.error("Import error:", err);
-      res.status(500).json({ message: "Failed to import data" });
-    }
-  });
-
-  app.delete("/api/data/reset", async (req, res) => {
-    await storage.resetAllData();
-    res.status(200).json({ message: "All data has been reset" });
-  });
-
-  // Workout Logs (Progress Tracking)
-  app.get("/api/logs", async (req, res) => {
-    const logs = await storage.getWorkoutLogs();
-    res.json(logs);
-  });
-
-  app.get("/api/logs/exercise/:name", async (req, res) => {
-    const logs = await storage.getLogsByExerciseName(decodeURIComponent(req.params.name));
-    res.json(logs);
-  });
-
-  app.post("/api/workouts/:workoutId/days/:dayId/complete", async (req, res) => {
-    try {
-      const logs = await storage.logCompletedDay(
+      await logCompletedDay(
         Number(req.params.workoutId),
         Number(req.params.dayId)
       );
-      res.status(201).json(logs);
+      res.status(204).end();
     } catch (err) {
-      res.status(404).json({ message: (err as Error).message });
+      next(err);
     }
-  });
-
-  // Seed Data
-  const existingWorkouts = await storage.getWorkouts();
-  if (existingWorkouts.length === 0) {
-    const workout = await storage.createWorkout({
-      name: "Full Body Beginner",
-      description: "A simple 3-day full body routine for beginners.",
-    });
-    
-    const dayA = await storage.createDay({
-      workoutId: workout.id,
-      name: "Day A",
-    });
-
-    await storage.createExercise({
-      dayId: dayA.id,
-      name: "Barbell Squat",
-      sets: 3,
-      reps: 5,
-      weight: 135,
-      notes: "Focus on depth",
-    });
-
-    await storage.createExercise({
-      dayId: dayA.id,
-      name: "Bench Press",
-      sets: 3,
-      reps: 5,
-      weight: 95,
-      notes: "Keep elbows tucked",
-    });
-
-    await storage.createExercise({
-      dayId: dayA.id,
-      name: "Bent Over Row",
-      sets: 3,
-      reps: 5,
-      weight: 95,
-      notes: "Keep back straight",
-    });
-
-    const dayB = await storage.createDay({
-      workoutId: workout.id,
-      name: "Day B",
-    });
-    
-     await storage.createExercise({
-      dayId: dayB.id,
-      name: "Deadlift",
-      sets: 1,
-      reps: 5,
-      weight: 185,
-    });
-
-    await storage.createExercise({
-      dayId: dayB.id,
-      name: "Overhead Press",
-      sets: 3,
-      reps: 5,
-      weight: 65,
-    });
   }
+);
 
-  return httpServer;
-}
+/* ----------------------------- Data ----------------------------- */
+
+router.get("/logs", async (_req, res, next) => {
+  try {
+    const data = await exportData();
+    res.json(data.logs);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/data/export", async (_req, res, next) => {
+  try {
+    res.json(await exportData());
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/data/import", async (req, res, next) => {
+  try {
+    const { replaceExisting, ...data } = req.body;
+    await importData(data, Boolean(replaceExisting));
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/data/reset", async (_req, res, next) => {
+  try {
+    await resetData();
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+export default router;
+
