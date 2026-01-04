@@ -1,6 +1,10 @@
 // server/index.ts
+import path from "path";
+import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
+
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 import routes from "./routes";
 
 const app = express();
