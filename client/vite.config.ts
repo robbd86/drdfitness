@@ -2,6 +2,14 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 
+const resolvePort = () => {
+  const envPort = process.env.PORT ?? process.env.CLIENT_PORT ?? process.env.REPL_PORT;
+  const port = envPort ? Number(envPort) : 5000;
+  return Number.isInteger(port) && port > 0 ? port : 5000;
+};
+
+const CLIENT_PORT = resolvePort();
+
 export default defineConfig({
   plugins: [react()],
 
@@ -22,7 +30,7 @@ export default defineConfig({
 
   server: {
     host: "0.0.0.0",
-    port: 5000,
+    port: CLIENT_PORT,
     strictPort: true,
 
     allowedHosts: true,

@@ -1,7 +1,11 @@
 import { apiRequest } from "@/lib/queryClient";
 import type { Workout, Exercise, WorkoutDay, SetData } from "@/domain/types";
 
-const API_BASE = "/api";
+// In production, VITE_API_URL points to Railway backend
+// In development, Vite proxies /api to localhost:5001
+const API_BASE = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : "/api";
 
 export const workoutApi = {
   async list(): Promise<Workout[]> {

@@ -7,36 +7,74 @@
 :root {
   --font-body: 'Inter', sans-serif;
   --font-display: 'Outfit', sans-serif;
+  --font-sans: 'Inter', sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: 'JetBrains Mono', monospace;
 
-  /* HSL Values */
-  --background: 240 10% 3.9%;
+  /* Dark theme with black background and orange accent */
+  --background: 0 0% 4%;
   --foreground: 0 0% 98%;
 
-  --card: 240 10% 3.9%;
+  --card: 0 0% 7%;
   --card-foreground: 0 0% 98%;
+  --card-border: 0 0% 15%;
 
-  --popover: 240 10% 3.9%;
+  --popover: 0 0% 7%;
   --popover-foreground: 0 0% 98%;
+  --popover-border: 0 0% 15%;
 
   /* Energetic Orange Primary */
   --primary: 24 95% 53%;
-  --primary-foreground: 240 5.9% 10%;
+  --primary-foreground: 0 0% 100%;
+  --primary-border: transparent;
 
-  --secondary: 240 3.7% 15.9%;
+  --secondary: 0 0% 12%;
   --secondary-foreground: 0 0% 98%;
+  --secondary-border: transparent;
 
-  --muted: 240 3.7% 15.9%;
-  --muted-foreground: 240 5% 64.9%;
+  --muted: 0 0% 12%;
+  --muted-foreground: 0 0% 60%;
+  --muted-border: transparent;
 
-  --accent: 240 3.7% 15.9%;
+  --accent: 0 0% 15%;
   --accent-foreground: 0 0% 98%;
+  --accent-border: transparent;
 
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 0 0% 98%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --destructive-border: transparent;
 
-  --border: 240 3.7% 15.9%;
-  --input: 240 3.7% 15.9%;
+  --border: 0 0% 15%;
+  --input: 0 0% 15%;
   --ring: 24 95% 53%;
+
+  /* Button outline color */
+  --button-outline: hsl(0 0% 20%);
+
+  /* Badge outline color */
+  --badge-outline: hsl(0 0% 25%);
+
+  /* Chart colors */
+  --chart-1: 24 95% 53%;
+  --chart-2: 24 80% 45%;
+  --chart-3: 24 70% 35%;
+  --chart-4: 24 60% 25%;
+  --chart-5: 24 50% 20%;
+
+  /* Sidebar */
+  --sidebar: 0 0% 6%;
+  --sidebar-foreground: 0 0% 98%;
+  --sidebar-border: 0 0% 15%;
+  --sidebar-ring: 24 95% 53%;
+  --sidebar-primary: 24 95% 53%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-primary-border: transparent;
+  --sidebar-accent: 0 0% 12%;
+  --sidebar-accent-foreground: 0 0% 98%;
+  --sidebar-accent-border: transparent;
+
+  /* Radius */
+  --radius: 0.75rem;
 }
 
 @layer base {
@@ -59,6 +97,20 @@
   
   .animate-in {
     animation: fade-in 0.3s ease-out forwards;
+  }
+
+  .hover-elevate {
+    @apply transition-all duration-200;
+  }
+  .hover-elevate:hover {
+    @apply -translate-y-0.5 shadow-lg;
+  }
+
+  .active-elevate-2 {
+    @apply transition-all duration-100;
+  }
+  .active-elevate-2:active {
+    @apply translate-y-0.5 shadow-none;
   }
 }
 
