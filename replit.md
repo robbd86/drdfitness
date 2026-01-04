@@ -43,6 +43,16 @@ Data model consists of:
 - `workouts` - Training programs (name, description)
 - `workoutDays` - Days within a workout (name, order)
 - `exercises` - Individual exercises (name, sets, reps, weight, notes, setData for per-set tracking)
+- `workoutLogs` - Completed workout history (exercise snapshot, date, sets completed)
+
+### Progress Tracking
+The app includes a dedicated Progress page (`/progress`) that shows:
+- Personal records (PRs) for each exercise
+- Trend indicators (improving/maintaining/declining)
+- Weight progression charts using Recharts
+- Recent session history with expandable cards
+
+"Log Workout" buttons on each workout day tab allow users to save their current session to the progress history.
 
 ### Shared Code
 The `shared/` directory contains code used by both frontend and backend:
