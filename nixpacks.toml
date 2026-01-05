@@ -1,0 +1,16 @@
+# Ensures Railway/Nixpacks builds the bundled server + client assets.
+# Without this, Railway may skip `npm run build`, causing `npm run start`
+# (node dist/index.cjs) to fail.
+
+[phases.setup]
+# Use a modern Node runtime; Railway will choose an appropriate default if omitted.
+# nixPkgs = ["nodejs_20"]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm run start"
