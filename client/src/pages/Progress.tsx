@@ -1,15 +1,15 @@
 import { useState, useMemo } from "react";
-import { useWorkoutLogs } from "@/hooks/use-workouts";
+import { useWorkoutLogs, useWorkoutSessions } from "@/hooks/use-workouts";
 import { Layout } from "@/components/Layout";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, TrendingDown, Trophy, Calendar, Dumbbell, ChevronDown, ChevronUp, Minus } from "lucide-react";
+import { TrendingUp, TrendingDown, Trophy, Calendar, Dumbbell, ChevronDown, ChevronUp, Minus, Clock, Activity } from "lucide-react";
 import { format, subDays, isAfter } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import type { WorkoutLog } from "@shared/schema";
+import type { WorkoutLog, WorkoutSession } from "@shared/schema";
 
 interface ExerciseStats {
   name: string;
@@ -88,9 +88,9 @@ function ExerciseProgressCard({ stats }: { stats: ExerciseStats }) {
   }, [stats.logs]);
 
   return (
-    <Card className="overflow-hidden border-border/50 bg-card/80 backdrop-blur-sm">
+    <Card className="overflow-hidden border-orange-500/20 bg-gradient-to-br from-slate-900 to-black/80 backdrop-blur-sm hover:border-orange-500/40 transition-all">
       <div 
-        className="p-4 cursor-pointer hover-elevate"
+        className="p-4 cursor-pointer hover:bg-orange-500/5 transition-colors"
         onClick={() => setExpanded(!expanded)}
         data-testid={`card-exercise-progress-${stats.name.replace(/\s+/g, '-').toLowerCase()}`}
       >
@@ -179,9 +179,9 @@ function ExerciseProgressCard({ stats }: { stats: ExerciseStats }) {
                       <Line 
                         type="monotone" 
                         dataKey="weight" 
-                        stroke="hsl(var(--primary))" 
+                        stroke="#f97316" 
                         strokeWidth={2}
-                        dot={{ fill: 'hsl(var(--primary))' }}
+                        dot={{ fill: '#f97316' }}
                         name="Weight (kg)"
                       />
                     </LineChart>
@@ -219,6 +219,7 @@ function ExerciseProgressCard({ stats }: { stats: ExerciseStats }) {
 
 export default function Progress() {
   const { data: logs, isLoading } = useWorkoutLogs();
+  const { data: sessions, isLoading: sessionsLoading } = useWorkoutSessions();
 
   const exerciseStats = useMemo(() => {
     if (!logs || logs.length === 0) return new Map<string, ExerciseStats>();
@@ -242,11 +243,23 @@ export default function Progress() {
     return max;
   }, [exerciseStats]);
 
+  const recentSessions = useMemo(() => {
+    return (sessions as WorkoutSession[] || []).slice(0, 5);
+  }, [sessions]);
+
+  const formatDuration = (minutes: number | null) => {
+    if (!minutes) return "-";
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+  };
+
   return (
     <Layout>
       <div className="max-w-4xl mx-auto space-y-8">
         <div>
-          <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground">
+          <h1 className="text-4xl md:text-5xl font-display font-bold bg-gradient-to-r from-orange-500 via-orange-400 to-orange-600 bg-clip-text text-transparent">
             Progress Tracker
           </h1>
           <p className="text-muted-foreground mt-2 text-lg">
@@ -257,12 +270,12 @@ export default function Progress() {
         {isLoading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-24 rounded-xl w-full bg-secondary/50" />
+              <Skeleton key={i} className="h-24 rounded-xl w-full bg-slate-800" />
             ))}
           </div>
         ) : sortedStats.length === 0 ? (
-          <div className="text-center py-20 rounded-3xl border-2 border-dashed border-border/50 bg-secondary/10">
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-primary">
+          <div className="text-center py-20 rounded-3xl border-2 border-dashed border-orange-500/30 bg-orange-500/5">
+            <div className="w-16 h-16 gradient-primary rounded-full flex items-center justify-center mx-auto mb-4 text-white">
               <TrendingUp className="w-8 h-8" />
             </div>
             <h3 className="text-xl font-semibold mb-2">No progress data yet</h3>
@@ -272,16 +285,57 @@ export default function Progress() {
           </div>
         ) : (
           <>
+            {/* Recent Workout Sessions */}
+            {recentSessions.length > 0 && (
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-orange-500" />
+                  Recent Workouts
+                </h2>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {recentSessions.map((session) => (
+                    <Card key={session.id} className="p-4 border-border/40 bg-card/30 backdrop-blur-sm">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="min-w-0">
+                          <h4 className="font-bold truncate">{session.workoutName}</h4>
+                          <p className="text-sm text-muted-foreground truncate">{session.dayName}</p>
+                        </div>
+                        <Badge variant="outline" className="shrink-0 text-xs">
+                          <Clock className="w-3 h-3 mr-1" />
+                          {formatDuration(session.durationMinutes)}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground mt-3">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {format(new Date(session.completedAt!), "MMM d")}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Dumbbell className="w-3 h-3" />
+                          {session.exerciseCount} exercises
+                        </span>
+                        {session.totalVolume && session.totalVolume > 0 && (
+                          <span className="font-mono text-orange-500">
+                            {(session.totalVolume / 1000).toFixed(1)}t vol
+                          </span>
+                        )}
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {overallPR.weight > 0 && (
-              <Card className="p-6 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/20">
+              <Card className="p-6 bg-gradient-to-r from-amber-950 to-orange-950 border-amber-600/40 hover:border-amber-600/60 transition-all duration-300">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center">
-                    <Trophy className="w-6 h-6 text-amber-500" />
+                  <div className="w-12 h-12 rounded-full gradient-primary flex items-center justify-center shadow-lg shadow-orange-500/20">
+                    <Trophy className="w-6 h-6 text-white" />
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Overall Best</p>
                     <p className="text-xl font-bold">
-                      {overallPR.name}: <span className="text-amber-500">{overallPR.weight} kg</span>
+                      {overallPR.name}: <span className="text-amber-400">{overallPR.weight} kg</span>
                     </p>
                   </div>
                 </div>
@@ -290,7 +344,7 @@ export default function Progress() {
 
             <div className="space-y-4">
               <h2 className="text-xl font-semibold flex items-center gap-2">
-                <Dumbbell className="w-5 h-5 text-primary" />
+                <Dumbbell className="w-5 h-5 text-orange-500" />
                 Exercise Progress
               </h2>
               {sortedStats.map((stats) => (

@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertExerciseSchema } from "@shared/schema";
-import { useCreateExercise } from "@/hooks/use-workouts";
+import { useCreateExercise, useWorkout, useSearchExerciseLibrary, useExerciseLogs } from "@/hooks/use-workouts";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,6 +10,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,86 +22,42 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, X } from "lucide-react";
+import { Plus, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
-
-/* ───────────────────────────────────────────── */
-/* Types & Schema                                */
-/* ───────────────────────────────────────────── */
+import { cn } from "@/lib/utils";
 
 interface AddExerciseDialogProps {
   dayId: number;
   workoutId: number;
 }
 
-const formSchema = insertExerciseSchema.omit({ dayId: true }).extend({
+const formSchema = z.object({
+  name: z.string().min(1, "Exercise name is required"),
   sets: z.coerce.number().min(1),
   reps: z.coerce.number().min(1),
   weight: z.coerce.number().optional(),
+  notes: z.string().optional(),
+  completed: z.boolean().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
-/* ───────────────────────────────────────────── */
-/* Hooks                                        */
-/* ───────────────────────────────────────────── */
+export function AddExerciseDialog({ dayId, workoutId }: AddExerciseDialogProps) {
+  const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+  const createExercise = useCreateExercise();
+  const { data: workout } = useWorkout(workoutId);
+  const { data: suggestions } = useSearchExerciseLibrary(searchQuery);
+  
+  // Get previous logs for selected exercise name
+  const exerciseName = searchQuery;
+  const { data: previousLogs } = useExerciseLogs(exerciseName);
+  const lastLog = previousLogs?.[0];
 
-function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 640);
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
-
-  return isMobile;
-}
-
-/**
- * CRITICAL FIX:
- * Tracks the REAL visible viewport height when the keyboard opens.
- */
-function useVisualViewportHeight() {
-  const [height, setHeight] = useState(() => {
-    if (typeof window === "undefined") return 0;
-    return window.visualViewport?.height ?? window.innerHeight;
-  });
-
-  useEffect(() => {
-    if (!window.visualViewport) return;
-
-    const update = () => setHeight(window.visualViewport!.height);
-
-    window.visualViewport.addEventListener("resize", update);
-    window.visualViewport.addEventListener("scroll", update);
-
-    return () => {
-      window.visualViewport?.removeEventListener("resize", update);
-      window.visualViewport?.removeEventListener("scroll", update);
-    };
-  }, []);
-
-  return height;
-}
-
-/* ───────────────────────────────────────────── */
-/* Exercise Form                                */
-/* ───────────────────────────────────────────── */
-
-function ExerciseForm({
-  onSubmit,
-  isPending,
-  isMobile,
-  formRef,
-}: {
-  onSubmit: (data: FormValues) => void;
-  isPending: boolean;
-  isMobile?: boolean;
-  formRef?: React.RefObject<HTMLFormElement>;
-}) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -113,185 +69,199 @@ function ExerciseForm({
     },
   });
 
-  const handleFocus = (e: React.FocusEvent<any>) => {
-    setTimeout(() => {
-      e.target.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 100);
+  // When user selects from suggestions, prefill with last performance
+  const handleSelectSuggestion = (name: string) => {
+    form.setValue("name", name);
+    setSearchQuery(name);
+    setShowSuggestions(false);
   };
 
-  return (
-    <Form {...form}>
-      <form
-        ref={formRef}
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="space-y-4"
-      >
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Exercise Name</FormLabel>
-              <FormControl>
-                <Input {...field} onFocus={handleFocus} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+  // Update weight based on last log when name changes
+  useEffect(() => {
+    if (lastLog && lastLog.weight) {
+      form.setValue("weight", lastLog.weight);
+    }
+    if (lastLog && lastLog.reps) {
+      form.setValue("reps", lastLog.reps);
+    }
+    if (lastLog && lastLog.sets) {
+      form.setValue("sets", lastLog.sets);
+    }
+  }, [lastLog, form]);
 
-        <div className="grid grid-cols-3 gap-3">
-          {["sets", "reps", "weight"].map((fieldName) => (
+  const onSubmit = (data: FormValues) => {
+    const day = workout?.days?.find((d) => d.id === dayId);
+    const order = day?.exercises?.length ?? 0;
+    createExercise.mutate(
+      { ...data, dayId, workoutId, order },
+      {
+        onSuccess: () => {
+          setOpen(false);
+          form.reset();
+          toast({ title: "Exercise added" });
+        },
+        onError: () => {
+          toast({ title: "Error", description: "Failed to add exercise", variant: "destructive" });
+        },
+      }
+    );
+  };
+  const handleFormSubmit = form.handleSubmit(onSubmit);
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="sm" className="w-full mt-2">
+          <Plus className="mr-2 h-4 w-4" />
+          Add Exercise
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="w-[95vw] max-w-md mx-auto">
+        <DialogHeader>
+          <DialogTitle>Add Exercise</DialogTitle>
+          <DialogDescription>Add a new exercise to this training day.</DialogDescription>
+        </DialogHeader>
+
+        <Form {...form}>
+          <form onSubmit={handleFormSubmit} className="space-y-4">
+            {/* Exercise Name with Autocomplete */}
             <FormField
-              key={fieldName}
               control={form.control}
-              name={fieldName as any}
+              name="name"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    {fieldName === "weight" ? "Kg" : fieldName}
-                  </FormLabel>
+                <FormItem className="relative">
+                  <FormLabel>Exercise Name</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      step={fieldName === "weight" ? "0.5" : "1"}
-                      {...field}
-                      onFocus={handleFocus}
-                    />
+                    <div className="relative">
+                      <Input 
+                        placeholder="e.g. Bench Press" 
+                        {...field} 
+                        ref={inputRef}
+                        autoComplete="off"
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setSearchQuery(e.target.value);
+                          setShowSuggestions(true);
+                        }}
+                        onFocus={() => setShowSuggestions(true)}
+                        onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                      />
+                      {showSuggestions && suggestions && suggestions.length > 0 && (
+                        <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-48 overflow-auto">
+                          {suggestions.map((item) => (
+                            <button
+                              key={item.id}
+                              type="button"
+                              className="w-full px-3 py-2 text-left hover:bg-secondary/50 flex items-center justify-between group"
+                              onMouseDown={() => handleSelectSuggestion(item.name)}
+                            >
+                              <div>
+                                <span className="font-medium">{item.name}</span>
+                                <span className="text-xs text-muted-foreground ml-2">{item.muscleGroup}</span>
+                              </div>
+                              {item.equipment && (
+                                <span className="text-xs text-muted-foreground">{item.equipment}</span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-          ))}
-        </div>
 
-        <FormField
-          control={form.control}
-          name="notes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Notes</FormLabel>
-              <FormControl>
-                <Textarea {...field} value={field.value || ''} onFocus={handleFocus} />
-              </FormControl>
-            </FormItem>
-          )}
-        />
+            {/* Previous Performance Hint */}
+            {lastLog && (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 text-sm">
+                <TrendingUp className="w-4 h-4 text-orange-500 flex-shrink-0" />
+                <div>
+                  <span className="text-muted-foreground">Last session: </span>
+                  <span className="font-bold text-orange-500">
+                    {lastLog.sets}×{lastLog.reps} @ {lastLog.weight}kg
+                  </span>
+                  <span className="text-muted-foreground text-xs ml-2">
+                    ({new Date(lastLog.completedAt).toLocaleDateString()})
+                  </span>
+                </div>
+              </div>
+            )}
 
-        {!isMobile && (
-          <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? "Adding..." : "Add Exercise"}
-          </Button>
-        )}
-      </form>
-    </Form>
-  );
-}
-
-/* ───────────────────────────────────────────── */
-/* Main Component                               */
-/* ───────────────────────────────────────────── */
-
-export function AddExerciseDialog({
-  dayId,
-  workoutId,
-}: AddExerciseDialogProps) {
-  const [open, setOpen] = useState(false);
-  const { toast } = useToast();
-  const createExercise = useCreateExercise();
-  const isMobile = useIsMobile();
-  const viewportHeight = useVisualViewportHeight();
-  const formRef = useRef<HTMLFormElement>(null);
-
-  const onSubmit = (data: FormValues) => {
-    createExercise.mutate(
-      { ...data, dayId, workoutId },
-      {
-        onSuccess: () => {
-          setOpen(false);
-          toast({ title: "Exercise added" });
-        },
-      }
-    );
-  };
-
-  const triggerButton = (
-    <Button variant="ghost" size="sm" className="w-full mt-2" data-testid="button-add-exercise">
-      <Plus className="mr-2 h-4 w-4" />
-      Add Exercise
-    </Button>
-  );
-
-  /* ───────────── MOBILE FULLSCREEN MODAL ───────────── */
-
-  if (isMobile) {
-    return (
-      <>
-        <div onClick={() => setOpen(true)}>{triggerButton}</div>
-
-        {open && (
-          <div
-            className="fixed inset-0 z-50 flex flex-col bg-background"
-            style={{ height: viewportHeight }}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold">Add Exercise</h2>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => setOpen(false)}
-                data-testid="button-close-modal"
-              >
-                <X />
-              </Button>
-            </div>
-
-            {/* Scrollable body (keyboard-safe) */}
-            <div className="flex-1 overflow-y-auto px-4 pt-4 pb-[14rem]">
-              <ExerciseForm
-                onSubmit={onSubmit}
-                isPending={createExercise.isPending}
-                isMobile
-                formRef={formRef}
+            {/* Sets, Reps, Weight in a row */}
+            <div className="grid grid-cols-3 gap-3">
+              <FormField
+                control={form.control}
+                name="sets"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Sets</FormLabel>
+                    <FormControl>
+                      <Input type="number" min={1} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="reps"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Reps</FormLabel>
+                    <FormControl>
+                      <Input type="number" min={1} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="weight"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Kg</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.5" placeholder="0" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
 
-            {/* Fixed footer */}
-            <div className="border-t p-4 bg-background">
+            {/* Notes - compact */}
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notes (optional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Any notes..."
+                      className="resize-none h-16"
+                      {...field}
+                      value={field.value || ""}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            {/* Submit Button - Always visible in DialogFooter */}
+            <DialogFooter className="pt-2">
               <Button
+                type="submit"
                 className="w-full"
                 disabled={createExercise.isPending}
-                onClick={() => formRef.current?.requestSubmit()}
               >
                 {createExercise.isPending ? "Adding..." : "Add Exercise"}
               </Button>
-            </div>
-          </div>
-        )}
-      </>
-    );
-  }
-
-  /* ───────────── DESKTOP DIALOG ───────────── */
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{triggerButton}</DialogTrigger>
-      <DialogContent className="max-h-[90dvh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Add Exercise</DialogTitle>
-          <DialogDescription className="sr-only">
-            Add a new exercise
-          </DialogDescription>
-        </DialogHeader>
-        <div className="flex-1 overflow-y-auto">
-          <ExerciseForm
-            onSubmit={onSubmit}
-            isPending={createExercise.isPending}
-          />
-        </div>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

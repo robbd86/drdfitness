@@ -82,11 +82,35 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground antialiased selection:bg-primary/30 selection:text-primary-foreground;
+    @apply bg-gradient-to-b from-black via-slate-950 to-black text-foreground antialiased selection:bg-primary/30 selection:text-primary-foreground;
     font-family: var(--font-body);
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
+  }
+
+  /* Custom scrollbar styling */
+  ::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-black/20;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(to bottom, #f97316, #ea580c);
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(to bottom, #fb923c, #f97316);
+  }
+
+  /* Firefox scrollbar */
+  * {
+    scrollbar-color: hsl(var(--primary)) transparent;
+    scrollbar-width: thin;
   }
 }
 
@@ -111,6 +135,31 @@
   }
   .active-elevate-2:active {
     @apply translate-y-0.5 shadow-none;
+  }
+
+  /* Enhanced gradient and shadow utilities */
+  .gradient-primary {
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 50%, #f97316 100%);
+  }
+
+  .gradient-dark {
+    @apply bg-gradient-to-b from-black via-slate-900 to-black;
+  }
+
+  .glow-primary {
+    @apply shadow-lg shadow-orange-500/20;
+  }
+
+  .glow-primary-hover {
+    @apply transition-all duration-300 hover:shadow-xl hover:shadow-orange-500/30;
+  }
+
+  .card-gradient {
+    @apply bg-gradient-to-br from-slate-900 to-black border border-orange-500/10;
+  }
+
+  .badge-orange {
+    @apply bg-orange-500/20 text-orange-400 border border-orange-500/40 hover:bg-orange-500/30 transition-colors;
   }
 }
 

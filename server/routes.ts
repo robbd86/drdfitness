@@ -12,10 +12,20 @@ import {
   updateExercise,
   deleteExercise,
   reorderExercises,
+  reorderDays,
   logCompletedDay,
   exportData,
   importData,
   resetData,
+  listExerciseLibrary,
+  searchExerciseLibrary,
+  createExerciseLibraryItem,
+  getLogsByExerciseName,
+  getWorkoutSessions,
+  listScheduledWorkouts,
+  getTodaySchedule,
+  createScheduledWorkout,
+  deleteScheduledWorkout,
 } from "./storage";
 
 import {
@@ -95,6 +105,15 @@ router.post("/days/:id/duplicate", async (req, res, next) => {
   }
 });
 
+router.post("/workouts/:workoutId/days/reorder", async (req, res, next) => {
+  try {
+    await reorderDays(Number(req.params.workoutId), req.body.dayIds);
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
 /* ----------------------------- Exercises ----------------------------- */
 
 router.post("/days/:dayId/exercises", async (req, res, next) => {
@@ -140,16 +159,26 @@ router.post(
   "/workouts/:workoutId/days/:dayId/complete",
   async (req, res, next) => {
     try {
-      await logCompletedDay(
+      const startedAt = req.body.startedAt ? new Date(req.body.startedAt) : undefined;
+      const session = await logCompletedDay(
         Number(req.params.workoutId),
-        Number(req.params.dayId)
+        Number(req.params.dayId),
+        startedAt
       );
-      res.status(204).end();
+      res.status(200).json(session);
     } catch (err) {
       next(err);
     }
   }
 );
+
+router.get("/sessions", async (_req, res, next) => {
+  try {
+    res.json(await getWorkoutSessions());
+  } catch (err) {
+    next(err);
+  }
+});
 
 /* ----------------------------- Data ----------------------------- */
 
@@ -157,6 +186,15 @@ router.get("/logs", async (_req, res, next) => {
   try {
     const data = await exportData();
     res.json(data.logs);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/logs/exercise/:name", async (req, res, next) => {
+  try {
+    const logs = await getLogsByExerciseName(decodeURIComponent(req.params.name));
+    res.json(logs);
   } catch (err) {
     next(err);
   }
@@ -184,6 +222,75 @@ router.post("/data/reset", async (_req, res, next) => {
   try {
     await resetData();
     res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ----------------------------- Exercise Library ----------------------------- */
+
+router.get("/exercise-library", async (_req, res, next) => {
+  try {
+    res.json(await listExerciseLibrary());
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/exercise-library/search", async (req, res, next) => {
+  try {
+    const query = String(req.query.q || "");
+    res.json(await searchExerciseLibrary(query));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/exercise-library", async (req, res, next) => {
+  try {
+    const item = await createExerciseLibraryItem(req.body);
+    res.status(201).json(item);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ----------------------------- Schedule ----------------------------- */
+
+router.get("/schedule", async (_req, res, next) => {
+  try {
+    res.json(await listScheduledWorkouts());
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/schedule/today", async (_req, res, next) => {
+  try {
+    res.json(await getTodaySchedule());
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/schedule", async (req, res, next) => {
+  try {
+    const scheduled = await createScheduledWorkout({
+      workoutId: req.body.workoutId,
+      dayId: req.body.dayId,
+      scheduledDate: new Date(req.body.scheduledDate),
+      notes: req.body.notes,
+    });
+    res.status(201).json(scheduled);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete("/schedule/:id", async (req, res, next) => {
+  try {
+    await deleteScheduledWorkout(Number(req.params.id));
+    res.status(204).end();
   } catch (err) {
     next(err);
   }

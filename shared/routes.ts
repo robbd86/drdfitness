@@ -6,6 +6,9 @@ import {
   workoutDaySchema,
   exerciseSchema,
   workoutLogSchema,
+  exerciseLibrarySchema,
+  workoutSessionSchema,
+  scheduledWorkoutSchema,
 } from "./schema";
 
 /* ----------------------------- Helpers ----------------------------- */
@@ -69,6 +72,12 @@ export const api = {
         201: workoutDaySchema,
       },
     },
+    reorder: {
+      path: "/api/workouts/:workoutId/days/reorder",
+      responses: {
+        200: z.object({ success: z.boolean() }),
+      },
+    },
   },
 
   exercises: {
@@ -109,6 +118,63 @@ export const api = {
       path: "/api/logs/exercise/:name",
       responses: {
         200: z.array(workoutLogSchema),
+      },
+    },
+  },
+
+  sessions: {
+    list: {
+      path: "/api/sessions",
+      responses: {
+        200: z.array(workoutSessionSchema),
+      },
+    },
+  },
+
+  exerciseLibrary: {
+    list: {
+      path: "/api/exercise-library",
+      responses: {
+        200: z.array(exerciseLibrarySchema),
+      },
+    },
+    search: {
+      path: "/api/exercise-library/search",
+      responses: {
+        200: z.array(exerciseLibrarySchema),
+      },
+    },
+    create: {
+      path: "/api/exercise-library",
+      responses: {
+        201: exerciseLibrarySchema,
+      },
+    },
+  },
+
+  schedule: {
+    list: {
+      path: "/api/schedule",
+      responses: {
+        200: z.array(scheduledWorkoutSchema),
+      },
+    },
+    today: {
+      path: "/api/schedule/today",
+      responses: {
+        200: z.array(scheduledWorkoutSchema),
+      },
+    },
+    create: {
+      path: "/api/schedule",
+      responses: {
+        201: scheduledWorkoutSchema,
+      },
+    },
+    delete: {
+      path: "/api/schedule/:id",
+      responses: {
+        204: z.void(),
       },
     },
   },

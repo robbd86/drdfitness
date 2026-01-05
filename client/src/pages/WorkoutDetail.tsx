@@ -1,5 +1,5 @@
 import { useRoute } from "wouter";
-import { useWorkout, useDeleteDay, useReorderExercises, useDuplicateDay, useCompleteDay } from "@/hooks/use-workouts";
+import { useWorkout, useDeleteDay, useReorderExercises, useDuplicateDay, useCompleteDay, useReorderDays } from "@/hooks/use-workouts";
 import { Layout } from "@/components/Layout";
 import { AddDayDialog } from "@/components/AddDayDialog";
 import { AddExerciseDialog } from "@/components/AddExerciseDialog";
@@ -7,18 +7,68 @@ import { ExerciseItem } from "@/components/ExerciseItem";
 import { RestTimer } from "@/components/RestTimer";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronLeft, Trash2, CalendarDays, Copy, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, Trash2, CalendarDays, Copy, CheckCircle2, GripVertical } from "lucide-react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { useState, useEffect } from "react";
-import { type Exercise } from "@shared/schema";
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { useState, useEffect, useRef } from "react";
+import { type Exercise, type Day } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+
+// Sortable Tab Component for day reordering
+interface SortableTabProps {
+  day: Day;
+  activeTab: string;
+  onTabChange: (value: string) => void;
+}
+
+function SortableTab({ day, activeTab, onTabChange }: SortableTabProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: day.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const isDone = day.exercises.length > 0 && day.exercises.every(e => e.completed);
+  const isActive = activeTab === day.id.toString();
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center">
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        className={cn(
+          "cursor-grab active:cursor-grabbing p-1 rounded-lg hover:bg-muted/50 transition-colors",
+          isDragging && "cursor-grabbing"
+        )}
+        aria-label="Drag to reorder"
+      >
+        <GripVertical className="w-3 h-3 text-muted-foreground" />
+      </button>
+      <TabsTrigger 
+        value={day.id.toString()}
+        onClick={() => onTabChange(day.id.toString())}
+        className={cn(
+          "rounded-xl px-4 py-2 text-sm font-bold uppercase tracking-wider transition-all shadow-sm",
+          isActive && "bg-orange-500 text-white",
+          isDone && "border-b-2 border-green-500"
+        )}
+      >
+        {day.name}
+        {isDone && <Badge className="ml-2 bg-green-500 hover:bg-green-600 h-2 w-2 rounded-full p-0" />}
+      </TabsTrigger>
+    </div>
+  );
+}
 
 export default function WorkoutDetail() {
   const [, params] = useRoute("/workout/:id");
@@ -27,8 +77,12 @@ export default function WorkoutDetail() {
   const deleteDay = useDeleteDay();
   const duplicateDay = useDuplicateDay();
   const reorderExercises = useReorderExercises();
+  const reorderDays = useReorderDays();
   const completeDay = useCompleteDay();
   const { toast } = useToast();
+  
+  // Track workout start time per day
+  const workoutStartTimes = useRef<Record<number, Date>>({});
   
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -38,7 +92,15 @@ export default function WorkoutDetail() {
   );
 
   const [orderedExercises, setOrderedExercises] = useState<Record<number, Exercise[]>>({});
+  const [orderedDays, setOrderedDays] = useState<Day[]>([]);
   const [activeTab, setActiveTab] = useState<string>("");
+
+  // Track when user first interacts with a day (start time)
+  const handleStartWorkout = (dayId: number) => {
+    if (!workoutStartTimes.current[dayId]) {
+      workoutStartTimes.current[dayId] = new Date();
+    }
+  };
 
   useEffect(() => {
     if (workout) {
@@ -47,11 +109,20 @@ export default function WorkoutDetail() {
         newOrdered[day.id] = [...day.exercises].sort((a, b) => (a.order || 0) - (b.order || 0));
       });
       setOrderedExercises(newOrdered);
+      setOrderedDays([...workout.days].sort((a, b) => (a.order || 0) - (b.order || 0)));
       if (workout.days.length > 0 && !activeTab) {
-        setActiveTab(workout.days[0].id.toString());
+        const sortedDays = [...workout.days].sort((a, b) => (a.order || 0) - (b.order || 0));
+        setActiveTab(sortedDays[0].id.toString());
       }
     }
   }, [workout]);
+
+  // Start tracking when tab changes
+  useEffect(() => {
+    if (activeTab) {
+      handleStartWorkout(parseInt(activeTab));
+    }
+  }, [activeTab]);
 
   const handleDragEnd = (event: DragEndEvent, dayId: number) => {
     const { active, over } = event;
@@ -73,6 +144,26 @@ export default function WorkoutDetail() {
           ...prev,
           [dayId]: newExercises
         };
+      });
+    }
+  };
+
+  const handleDayDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (active.id !== over?.id) {
+      setOrderedDays((prev) => {
+        const oldIndex = prev.findIndex((day) => day.id === active.id);
+        const newIndex = prev.findIndex((day) => day.id === over?.id);
+        
+        const newDays = arrayMove(prev, oldIndex, newIndex);
+        
+        reorderDays.mutate({ 
+          workoutId: id, 
+          dayIds: newDays.map(d => d.id) 
+        });
+
+        return newDays;
       });
     }
   };
@@ -123,7 +214,7 @@ export default function WorkoutDetail() {
     <Layout>
       <div className="max-w-4xl mx-auto pb-20 px-4">
         <div className="mb-8">
-          <Link href="/" className="inline-flex items-center text-sm font-bold text-primary hover:opacity-80 mb-4 transition-all">
+          <Link href="/" className="inline-flex items-center text-sm font-bold text-orange-500 hover:opacity-80 mb-4 transition-all">
             <ChevronLeft className="w-4 h-4 mr-1" />
             WORKOUTS
           </Link>
@@ -132,7 +223,7 @@ export default function WorkoutDetail() {
               {workout.name}
             </h1>
             {workout.description && (
-              <p className="text-base text-muted-foreground max-w-2xl font-medium border-l-4 border-primary/20 pl-4 py-1">
+              <p className="text-base text-muted-foreground max-w-2xl font-medium border-l-4 border-orange-500/20 pl-4 py-1">
                 {workout.description}
               </p>
             )}
@@ -149,31 +240,34 @@ export default function WorkoutDetail() {
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <div className="relative group">
-              <TabsList className="h-auto p-1 bg-secondary/30 backdrop-blur-md rounded-2xl flex-wrap justify-start gap-1">
-                {workout.days.map((day) => {
-                  const isDone = day.exercises.length > 0 && day.exercises.every(e => e.completed);
-                  return (
-                    <TabsTrigger 
-                      key={day.id} 
-                      value={day.id.toString()}
-                      className={cn(
-                        "rounded-xl px-4 py-2 text-sm font-bold uppercase tracking-wider transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shadow-sm",
-                        isDone && "border-b-2 border-green-500"
-                      )}
-                    >
-                      {day.name}
-                      {isDone && <Badge className="ml-2 bg-green-500 hover:bg-green-600 h-2 w-2 rounded-full p-0" />}
-                    </TabsTrigger>
-                  );
-                })}
-                <div className="px-2 py-1">
-                  <AddDayDialog workoutId={workout.id} />
-                </div>
-              </TabsList>
+              <DndContext 
+                sensors={sensors} 
+                collisionDetection={closestCenter} 
+                onDragEnd={handleDayDragEnd}
+              >
+                <SortableContext 
+                  items={orderedDays.map(d => d.id)} 
+                  strategy={horizontalListSortingStrategy}
+                >
+                  <TabsList className="h-auto p-1 bg-secondary/30 backdrop-blur-md rounded-2xl flex-wrap justify-start gap-1">
+                    {orderedDays.map((day) => (
+                      <SortableTab 
+                        key={day.id} 
+                        day={day} 
+                        activeTab={activeTab}
+                        onTabChange={setActiveTab}
+                      />
+                    ))}
+                    <div className="px-2 py-1">
+                      <AddDayDialog workoutId={workout.id} />
+                    </div>
+                  </TabsList>
+                </SortableContext>
+              </DndContext>
             </div>
 
             <AnimatePresence mode="wait">
-              {workout.days.map((day) => (
+              {orderedDays.map((day) => (
                 <TabsContent key={day.id} value={day.id.toString()} className="mt-0 outline-none">
                   <motion.div
                     initial={{ opacity: 0, x: 20 }}
@@ -183,7 +277,7 @@ export default function WorkoutDetail() {
                   >
                     <div className="flex flex-col gap-3 mb-4 px-1">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <Badge variant="outline" className="text-xs font-black uppercase tracking-widest border-primary/20 text-primary px-3">
+                        <Badge variant="outline" className="text-xs font-black uppercase tracking-widest border-orange-500/20 text-orange-500 px-3">
                           {day.exercises.length} EXERCISES
                         </Badge>
                         <div className="flex items-center gap-2">
@@ -246,12 +340,15 @@ export default function WorkoutDetail() {
                             variant="default"
                             className="w-full sm:w-auto font-bold"
                             onClick={() => {
-                              completeDay.mutate({ workoutId: workout.id, dayId: day.id }, {
+                              const startedAt = workoutStartTimes.current[day.id];
+                              completeDay.mutate({ workoutId: workout.id, dayId: day.id, startedAt }, {
                                 onSuccess: () => {
                                   toast({ 
                                     title: "Workout Logged!", 
                                     description: "Your progress has been saved. View it in the Progress tab." 
                                   });
+                                  // Clear the start time for this day
+                                  delete workoutStartTimes.current[day.id];
                                 },
                                 onError: () => {
                                   toast({ 

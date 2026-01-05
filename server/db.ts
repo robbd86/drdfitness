@@ -8,8 +8,8 @@ dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
 const { Pool } = pg;
 
-// Use NEON_DATABASE_URL first (for Railway), then fall back to DATABASE_URL (for local dev)
-const connectionString = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
+// Prefer DATABASE_URL (Drizzle/Railway standard), fall back to NEON_DATABASE_URL.
+const connectionString = process.env.DATABASE_URL || process.env.NEON_DATABASE_URL;
 
 if (!connectionString) {
   throw new Error(

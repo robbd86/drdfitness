@@ -67,7 +67,7 @@ Or use Railway CLI to run it in their environment.
 4. Configure the build settings:
    - **Framework Preset**: Vite
    - **Root Directory**: `./` (leave empty)
-   - **Build Command**: `cd client && npm install && npm run build`
+   - **Build Command**: `npm run build:web`
    - **Output Directory**: `client/dist`
 
 5. Add Environment Variable:

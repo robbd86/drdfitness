@@ -79,24 +79,24 @@ export function RestTimer() {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 p-2 bg-secondary/30 rounded-lg border border-border/50" data-testid="rest-timer">
+    <div className="flex flex-wrap items-center gap-2 p-3 bg-gradient-to-r from-orange-500/10 to-orange-600/10 rounded-lg border border-orange-500/30 shadow-md shadow-orange-500/10" data-testid="rest-timer">
       <div className="flex items-center gap-1">
         <div className="relative min-w-[48px]">
           <div
             className={cn(
               "text-base font-mono font-bold tabular-nums transition-colors text-center",
-              isComplete ? "text-green-500" : isRunning ? "text-primary" : "text-foreground"
+              isComplete ? "text-green-400" : isRunning ? "text-orange-500" : "text-foreground"
             )}
             data-testid="timer-display"
           >
             {formatTime(seconds)}
           </div>
           {targetTime && (
-            <div className="absolute -bottom-0.5 left-0 right-0 h-0.5 bg-secondary rounded-full overflow-hidden">
+            <div className="absolute -bottom-0.5 left-0 right-0 h-0.5 bg-slate-700 rounded-full overflow-hidden">
               <div
                 className={cn(
-                  "h-full transition-all duration-1000",
-                  isComplete ? "bg-green-500" : "bg-primary"
+                  "h-full transition-all duration-1000 bg-gradient-to-r from-orange-500 to-orange-600",
+                  isComplete && "bg-gradient-to-r from-green-500 to-green-400"
                 )}
                 style={{ width: `${progress}%` }}
               />
@@ -108,7 +108,7 @@ export function RestTimer() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            className="h-7 w-7 hover:bg-orange-500/20"
             onClick={handlePause}
             data-testid="button-pause"
           >
@@ -118,7 +118,7 @@ export function RestTimer() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            className="h-7 w-7 hover:bg-orange-500/20"
             onClick={handleStart}
             data-testid="button-start"
           >
@@ -128,7 +128,7 @@ export function RestTimer() {
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7"
+          className="h-7 w-7 hover:bg-orange-500/20"
           onClick={handleReset}
           data-testid="button-reset"
         >
@@ -140,7 +140,7 @@ export function RestTimer() {
         {PRESET_TIMES.map((time) => (
           <Button
             key={time}
-            variant={targetTime === time ? "default" : "ghost"}
+            variant={targetTime === time ? "default" : "secondary"}
             size="sm"
             className="h-6 px-1.5 text-xs"
             onClick={() => handlePreset(time)}
@@ -154,7 +154,7 @@ export function RestTimer() {
       <Button
         variant="ghost"
         size="icon"
-        className="h-6 w-6 ml-auto"
+        className="h-6 w-6 ml-auto hover:bg-destructive/20 hover:text-destructive"
         onClick={() => {
           handleReset();
           setIsExpanded(false);

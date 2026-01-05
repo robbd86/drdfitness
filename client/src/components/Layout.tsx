@@ -20,15 +20,15 @@ export function Layout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
 
   return (
-    <div className="relative min-h-[100dvh] bg-background text-foreground flex flex-col">
-      <header className="border-b border-border/40 sticky top-0 z-50 bg-background/80 backdrop-blur-md">
+    <div className="relative min-h-[100dvh] bg-black text-foreground flex flex-col">
+      <header className="border-b border-orange-500/20 sticky top-0 z-50 bg-black/60 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2 group cursor-pointer hover:opacity-80 transition-opacity">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-orange-600 flex items-center justify-center text-white shadow-lg shadow-primary/20">
+          <Link href="/" className="flex items-center gap-2 group cursor-pointer hover:opacity-90 transition-opacity duration-200">
+            <div className="w-10 h-10 rounded-lg gradient-primary flex items-center justify-center text-white shadow-lg shadow-orange-500/30 group-hover:shadow-xl group-hover:shadow-orange-500/40 transition-all duration-200">
               <Dumbbell className="h-5 w-5" />
             </div>
             <span className="text-xl font-display font-bold tracking-tight hidden sm:inline">
-              DRD<span className="text-primary">Fitness</span>
+              DRD<span className="text-orange-500">Fitness</span>
             </span>
           </Link>
 
@@ -46,8 +46,8 @@ export function Layout({ children }: { children: ReactNode }) {
                   className={cn(
                     "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
                     location === item.path
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                      ? "bg-orange-500/10 text-orange-500"
+                      : "text-muted-foreground hover:text-foreground hover:bg-orange-500/5"
                   )}
                 >
                   <item.icon className="h-4 w-4" />
@@ -63,7 +63,7 @@ export function Layout({ children }: { children: ReactNode }) {
         {children}
       </main>
 
-      <footer className="border-t border-border/40 py-6 text-center text-sm text-muted-foreground">
+      <footer className="border-t border-orange-500/20 py-6 text-center text-sm text-muted-foreground">
         <p>DRD Fitness - Train Hard, Track Smart</p>
       </footer>
 

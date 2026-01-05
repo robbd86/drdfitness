@@ -109,7 +109,7 @@ export function InstallPrompt() {
       >
         <div className="bg-card border border-border rounded-lg p-4 shadow-lg">
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-orange-600 flex items-center justify-center text-white flex-shrink-0">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center text-white flex-shrink-0">
               <Download className="h-5 w-5" />
             </div>
             
@@ -158,7 +158,7 @@ export function InstallPrompt() {
       data-testid="install-prompt"
     >
       <div className="bg-card border border-border rounded-lg p-4 shadow-lg flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-orange-600 flex items-center justify-center text-white flex-shrink-0">
+        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center text-white flex-shrink-0">
           <Download className="h-5 w-5" />
         </div>
         

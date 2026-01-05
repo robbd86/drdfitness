@@ -39,6 +39,27 @@ async function parseResponseBody(res: Response): Promise<unknown> {
   return text;
 }
 
+function withApiBase(input: RequestInfo | URL): RequestInfo | URL {
+  const base = (import.meta as any).env?.VITE_API_URL as string | undefined;
+  if (!base) return input;
+
+  const trimmedBase = base.replace(/\/$/, "");
+
+  if (typeof input === "string") {
+    if (input.startsWith("http://") || input.startsWith("https://")) return input;
+    if (input.startsWith("/")) return `${trimmedBase}${input}`;
+    return input;
+  }
+
+  if (input instanceof URL) {
+    // Only rewrite relative-ish URLs (no host). URL objects are typically absolute.
+    return input;
+  }
+
+  // Request objects are left untouched.
+  return input;
+}
+
 /**
  * Main fetch helper:
  * - throws ApiError on non-2xx
@@ -49,34 +70,49 @@ export async function apiFetch<T>(
   init?: RequestInit,
   schema?: ZodType<T>
 ): Promise<T> {
-  const res = await fetch(input, {
-    ...init,
-    headers: {
-      ...(init?.headers || {}),
-      // Ensure JSON by default for API calls
-      Accept: "application/json",
-      ...(init?.body ? { "Content-Type": "application/json" } : {}),
-    },
-  });
+  try {
+    const response = await fetch(withApiBase(input), {
+      ...init,
+      headers: {
+        ...(init?.headers || {}),
+        // Ensure JSON by default for API calls
+        Accept: "application/json",
+        ...(init?.body ? { "Content-Type": "application/json" } : {}),
+      },
+    });
 
-  const body = await parseResponseBody(res);
+    // Clone the response so React Query devtools can also read it
+    const res = response.clone();
+    const body = await parseResponseBody(res);
 
-  if (!res.ok) {
-    // Prefer server-provided message if available
-    const message =
-      typeof body === "object" && body && "message" in body && typeof (body as any).message === "string"
-        ? (body as any).message
-        : `Request failed (${res.status})`;
+    if (!response.ok) {
+      // Prefer server-provided message if available
+      const message =
+        typeof body === "object" && body && "message" in body && typeof (body as any).message === "string"
+          ? (body as any).message
+          : `Request failed (${response.status})`;
 
-    throw new ApiError(message, res.status, body);
+      throw new ApiError(message, response.status, body);
+    }
+
+    // If caller expects no body (e.g. DELETE), allow undefined
+    if (schema) {
+      return schema.parse(body);
+    }
+
+    return body as T;
+  } catch (error) {
+    // If it's already an ApiError, rethrow it
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    // Otherwise, wrap it in an ApiError
+    throw new ApiError(
+      error instanceof Error ? error.message : "Network request failed",
+      0,
+      error
+    );
   }
-
-  // If caller expects no body (e.g. DELETE), allow undefined
-  if (schema) {
-    return schema.parse(body);
-  }
-
-  return body as T;
 }
 
 /**

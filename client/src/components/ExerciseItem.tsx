@@ -1,8 +1,8 @@
 import { type Exercise } from "@shared/schema";
-import { useUpdateExercise, useDeleteExercise } from "@/hooks/use-workouts";
+import { useUpdateExercise, useDeleteExercise, useExerciseLogs } from "@/hooks/use-workouts";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Trash2, GripVertical, Settings2 } from "lucide-react";
+import { Trash2, GripVertical, Settings2, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { EditExerciseDialog } from "./EditExerciseDialog";
@@ -12,6 +12,7 @@ import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface EditableInputProps {
   value: number;
@@ -68,6 +69,15 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
   const deleteExercise = useDeleteExercise();
   const { toast } = useToast();
   const [showSets, setShowSets] = useState(false);
+  
+  // Fetch previous performance
+  const { data: previousLogs } = useExerciseLogs(exercise.name);
+  const lastLog = previousLogs?.[0];
+  
+  // Calculate if current weight is higher/lower than last session
+  const currentMaxWeight = exercise.setData?.reduce((max, s) => Math.max(max, s.weight || 0), 0) || exercise.weight || 0;
+  const lastWeight = lastLog?.weight || 0;
+  const weightTrend = currentMaxWeight > lastWeight ? "up" : currentMaxWeight < lastWeight ? "down" : "same";
 
   const {
     attributes,
@@ -156,12 +166,12 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
       className={cn(
         "group relative border-border/40 bg-card/30 backdrop-blur-sm transition-all duration-300",
         exercise.completed && "opacity-60 bg-secondary/10",
-        isDragging && "shadow-xl ring-2 ring-primary border-primary/50"
+        isDragging && "shadow-xl ring-2 ring-orange-500 border-orange-500/50"
       )}
     >
       <div className="p-3 md:p-4">
         <div className="flex items-start gap-3">
-          <div {...attributes} {...listeners} className="mt-1 cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-primary transition-colors">
+          <div {...attributes} {...listeners} className="mt-1 cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-orange-500 transition-colors">
             <GripVertical className="h-5 w-5" />
           </div>
 
@@ -183,7 +193,7 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-primary"
+                  className="h-8 w-8 text-muted-foreground hover:text-orange-500"
                   onClick={() => setShowSets(!showSets)}
                   data-testid={`button-expand-sets-${exercise.id}`}
                 >
@@ -206,13 +216,39 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
               <Badge variant="secondary" className="font-mono px-2 py-0 h-6 text-xs">
                 {exercise.sets} Sets
               </Badge>
-              <Badge variant="outline" className="font-mono px-2 py-0 h-6 text-xs border-primary/20 text-primary">
+              <Badge variant="outline" className="font-mono px-2 py-0 h-6 text-xs border-orange-500/20 text-orange-500">
                 {exercise.reps} Reps
               </Badge>
               {exercise.weight && (
-                <Badge variant="default" className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-2 py-0 h-6 text-xs font-bold">
+                <Badge variant="default" className="bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 border-none px-2 py-0 h-6 text-xs font-bold">
                   {exercise.weight} KG
                 </Badge>
+              )}
+              {lastLog && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge 
+                        variant="outline" 
+                        className={cn(
+                          "font-mono px-2 py-0 h-6 text-xs cursor-help",
+                          weightTrend === "up" && "border-green-500/30 text-green-500",
+                          weightTrend === "down" && "border-red-500/30 text-red-500",
+                          weightTrend === "same" && "border-muted-foreground/30 text-muted-foreground"
+                        )}
+                      >
+                        {weightTrend === "up" && <TrendingUp className="w-3 h-3 mr-1" />}
+                        {weightTrend === "down" && <TrendingDown className="w-3 h-3 mr-1" />}
+                        {weightTrend === "same" && <Minus className="w-3 h-3 mr-1" />}
+                        Last: {lastLog.weight}kg
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="font-medium">Last session: {lastLog.sets}×{lastLog.reps} @ {lastLog.weight}kg</p>
+                      <p className="text-xs text-muted-foreground">{new Date(lastLog.completedAt).toLocaleDateString()}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
             </div>
           </div>
@@ -225,7 +261,7 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
                 key={idx} 
                 className={cn(
                   "flex items-center justify-between p-2 rounded-lg transition-colors gap-2",
-                  set.completed ? "bg-primary/5" : "bg-secondary/20"
+                  set.completed ? "bg-orange-500/5" : "bg-secondary/20"
                 )}
               >
                 <div className="flex items-center gap-2">
