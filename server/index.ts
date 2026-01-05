@@ -15,34 +15,32 @@ const app = express();
 /* ----------------------------- CORS (FIXED) ----------------------------- */
 
 const allowedOrigins = [
-  // Your production Vercel domain
   "https://drdfitness.vercel.app",
-  // Local dev (this project uses Vite on :5000)
-  "http://localhost:5000",
-  // Optional: default Vite port
   "http://localhost:5173",
+  "http://localhost:3000",
 ];
 
-const corsOptions: cors.CorsOptions = {
-  origin(origin, callback) {
-    // allow server-to-server / curl / Postman
-    if (!origin) return callback(null, true);
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow server-to-server / curl / healthchecks
+      if (!origin) return callback(null, true);
 
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
 
-    return callback(new Error("Not allowed by CORS"));
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-};
+      console.warn("Blocked by CORS:", origin);
+      callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
-app.use(cors(corsOptions));
-
-// IMPORTANT: handle preflight explicitly
-app.options("*", cors(corsOptions));
+// VERY IMPORTANT: preflight support
+app.options("*", cors());
 
 app.use(express.json());
 
