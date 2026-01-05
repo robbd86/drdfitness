@@ -12,23 +12,37 @@ const app = express();
 
 /* ----------------------------- Middleware ----------------------------- */
 
-const frontendOrigins = (process.env.FRONTEND_URL || "")
-  .split(",")
-  .map((s) => s.trim())
-  .filter(Boolean);
+/* ----------------------------- CORS (FIXED) ----------------------------- */
 
-app.use(
-  cors({
-    // In dev, allow the Vite dev server and tools.
-    // In prod, restrict to the configured frontend origins when provided.
-    origin:
-      process.env.NODE_ENV === "production" && frontendOrigins.length > 0
-        ? frontendOrigins
-        : true,
-    // This app does not currently rely on cookies for API calls.
-    credentials: false,
-  }),
-);
+const allowedOrigins = [
+  // Your production Vercel domain
+  "https://drdfitness.vercel.app",
+  // Local dev (this project uses Vite on :5000)
+  "http://localhost:5000",
+  // Optional: default Vite port
+  "http://localhost:5173",
+];
+
+const corsOptions: cors.CorsOptions = {
+  origin(origin, callback) {
+    // allow server-to-server / curl / Postman
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+app.use(cors(corsOptions));
+
+// IMPORTANT: handle preflight explicitly
+app.options("*", cors(corsOptions));
 
 app.use(express.json());
 
@@ -58,6 +72,11 @@ app.use((err: any, _req: any, res: any, _next: any) => {
  * You MUST listen on process.env.PORT
  */
 const PORT = Number(process.env.PORT || 5001);
+
+if (process.env.NODE_ENV === "production" && !process.env.PORT) {
+  console.error("❌ PORT environment variable is missing");
+  process.exit(1);
+}
 
 app.listen(PORT, "0.0.0.0", async () => {
   console.log(`✅ Server running on port ${PORT}`);
