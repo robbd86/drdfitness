@@ -1,7 +1,7 @@
 // client/src/hooks/use-workouts.ts
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
-import { type InsertWorkout, type InsertDay, type InsertExercise } from "@shared/schema";
+import { type InsertWorkout, type InsertDay, type Exercise, type InsertExercise } from "@shared/schema";
 import { apiGet, apiPost, apiPatch, apiDelete } from "@/lib/apiFetch";
 
 // --- Workouts ---
@@ -152,7 +152,7 @@ export function useUpdateExercise() {
       id,
       workoutId,
       ...updates
-    }: { id: number; workoutId: number } & Partial<InsertExercise>) => {
+    }: { id: number; workoutId: number } & Partial<Omit<Exercise, "id" | "dayId">>) => {
       const url = buildUrl(api.exercises.update.path, { id });
       return apiPatch(url, updates, api.exercises.update.responses[200]);
     },

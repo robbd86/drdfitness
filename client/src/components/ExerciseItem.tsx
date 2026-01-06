@@ -64,6 +64,12 @@ interface ExerciseItemProps {
   workoutId: number;
 }
 
+type SetDataEntry = {
+  reps?: number;
+  weight?: number;
+  completed?: boolean;
+};
+
 export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
   const updateExercise = useUpdateExercise();
   const deleteExercise = useDeleteExercise();
@@ -73,9 +79,14 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
   // Fetch previous performance
   const { data: previousLogs } = useExerciseLogs(exercise.name);
   const lastLog = previousLogs?.[0];
+
+  const setData: SetDataEntry[] = (exercise.setData as SetDataEntry[] | null) ?? [];
   
   // Calculate if current weight is higher/lower than last session
-  const currentMaxWeight = exercise.setData?.reduce((max, s) => Math.max(max, s.weight || 0), 0) || exercise.weight || 0;
+  const currentMaxWeight = setData.reduce(
+    (max, s) => Math.max(max, s.weight ?? 0),
+    0
+  ) || exercise.weight || 0;
   const lastWeight = lastLog?.weight || 0;
   const weightTrend = currentMaxWeight > lastWeight ? "up" : currentMaxWeight < lastWeight ? "down" : "same";
 
@@ -103,7 +114,7 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
   };
 
   const handleWeightChange = (setIndex: number, value: string) => {
-    const newData = [...(exercise.setData || [])];
+    const newData = [...setData];
     if (!newData[setIndex]) return;
     const parsed = parseFloat(value);
     newData[setIndex].weight = isNaN(parsed) ? 0 : Math.max(0, parsed);
@@ -111,7 +122,7 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
   };
 
   const handleRepsChange = (setIndex: number, value: string) => {
-    const newData = [...(exercise.setData || [])];
+    const newData = [...setData];
     if (!newData[setIndex]) return;
     const parsed = parseInt(value, 10);
     newData[setIndex].reps = isNaN(parsed) ? 1 : Math.max(1, parsed);
@@ -119,12 +130,12 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
   };
 
   const toggleSetComplete = (setIndex: number) => {
-    const newData = [...(exercise.setData || [])];
+    const newData = [...setData];
     if (!newData[setIndex]) return;
     newData[setIndex].completed = !newData[setIndex].completed;
     
     // Auto-complete main exercise if all sets are done
-    const allDone = newData.length > 0 && newData.every(s => s.completed);
+    const allDone = newData.length > 0 && newData.every((s) => Boolean(s.completed));
     updateExercise.mutate({ 
       id: exercise.id, 
       workoutId, 
@@ -135,17 +146,18 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
 
   // Initialize sets if needed
   useEffect(() => {
-    if (!exercise.setData || exercise.setData.length === 0) {
-      const initialSets = Array.from({ length: exercise.sets }).map(() => ({
+    if (!setData || setData.length === 0) {
+      const setCount = Math.max(1, exercise.sets ?? 1);
+      const initialSets: SetDataEntry[] = Array.from({ length: setCount }).map(() => ({
         weight: exercise.weight || 0,
-        reps: exercise.reps,
+        reps: exercise.reps ?? 1,
         completed: false
       }));
       updateExercise.mutate({ id: exercise.id, workoutId, setData: initialSets });
     }
   }, [exercise.id, exercise.sets, exercise.weight, exercise.reps, exercise.setData, workoutId]);
 
-  if (!exercise.setData || exercise.setData.length === 0) {
+  if (!setData || setData.length === 0) {
     return (
       <Card className="p-4 border-border/40 bg-card/30 backdrop-blur-sm">
         <div className="flex items-center gap-3">
@@ -256,7 +268,7 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
 
         {showSets && (
           <div className="mt-4 space-y-2 border-t border-border/20 pt-4 animate-in fade-in slide-in-from-top-2 duration-300">
-            {exercise.setData.map((set, idx) => (
+            {setData.map((set, idx) => (
               <div 
                 key={idx} 
                 className={cn(
@@ -267,7 +279,7 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-sm font-bold text-muted-foreground w-5">#{idx + 1}</span>
                   <Checkbox 
-                    checked={set.completed} 
+                    checked={Boolean(set.completed)} 
                     onCheckedChange={() => toggleSetComplete(idx)}
                     className="h-4 w-4"
                   />
@@ -275,7 +287,7 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
 
                 <div className="flex flex-col items-center">
                   <EditableInput
-                    value={set.reps}
+                    value={set.reps ?? exercise.reps ?? 1}
                     onSave={(val) => handleRepsChange(idx, val)}
                     inputMode="numeric"
                     className={cn(
@@ -289,7 +301,7 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
 
                 <div className="flex flex-col items-center">
                   <EditableInput
-                    value={set.weight}
+                    value={set.weight ?? exercise.weight ?? 0}
                     onSave={(val) => handleWeightChange(idx, val)}
                     inputMode="decimal"
                     className="w-16 h-7 text-center text-sm font-bold font-mono bg-background border border-border/50 rounded"

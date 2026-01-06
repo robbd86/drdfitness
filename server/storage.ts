@@ -29,6 +29,8 @@ const setDataSchema = z
   )
   .optional();
 
+type SetDataEntry = { reps?: number; weight?: number; completed?: boolean };
+
 /* ----------------------------- Workouts ----------------------------- */
 
 export async function listWorkouts() {
@@ -218,8 +220,9 @@ export async function logCompletedDay(workoutId: number, dayId: number, startedA
 
     // Calculate total volume for the session
     const totalSessionVolume = day.exercises.reduce((sum, e) => {
-      const exerciseVolume = e.setData?.reduce(
-        (s, set) => s + (set.reps ?? 0) * (set.weight ?? 0),
+      const sd = e.setData as SetDataEntry[] | null | undefined;
+      const exerciseVolume = sd?.reduce(
+        (s: number, set: SetDataEntry) => s + (set.reps ?? 0) * (set.weight ?? 0),
         0
       ) ?? 0;
       return sum + exerciseVolume;
@@ -251,8 +254,8 @@ export async function logCompletedDay(workoutId: number, dayId: number, startedA
           weight: e.weight,
           setData: e.setData,
           totalVolume:
-            e.setData?.reduce(
-              (sum, s) => sum + (s.reps ?? 0) * (s.weight ?? 0),
+            (e.setData as SetDataEntry[] | null | undefined)?.reduce(
+              (sum: number, s: SetDataEntry) => sum + (s.reps ?? 0) * (s.weight ?? 0),
               0
             ) ?? null,
           completedAt: now,
@@ -294,9 +297,9 @@ export async function exportData() {
 
 export async function importData(
   data: {
-    workouts: InsertWorkout[];
-    days: InsertDay[];
-    exercises: InsertExercise[];
+    workouts?: any[];
+    days?: any[];
+    exercises?: any[];
     logs?: any[];
   },
   replaceExisting: boolean

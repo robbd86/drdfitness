@@ -37,7 +37,7 @@ function SortableTab({ day, activeTab, onTabChange }: SortableTabProps) {
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const isDone = day.exercises.length > 0 && day.exercises.every(e => e.completed);
+  const isDone = day.exercises.length > 0 && day.exercises.every((e: Exercise) => e.completed);
   const isActive = activeTab === day.id.toString();
 
   return (
@@ -136,6 +136,7 @@ export default function WorkoutDetail() {
         const newExercises = arrayMove(currentExercises, oldIndex, newIndex);
         
         reorderExercises.mutate({ 
+          workoutId: id,
           dayId, 
           exerciseIds: newExercises.map(e => e.id) 
         });

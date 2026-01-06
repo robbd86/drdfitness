@@ -22,7 +22,7 @@ export default defineConfig({
     strictPort: true,
 
     // 🔴 THIS IS THE FIX
-    allowedHosts: "all",
+      allowedHosts: true,
 
     proxy: {
       "/api": {
