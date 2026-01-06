@@ -2,7 +2,7 @@ import { type Exercise } from "@shared/schema";
 import { useUpdateExercise, useDeleteExercise, useExerciseLogs } from "@/hooks/use-workouts";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Trash2, GripVertical, Settings2, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Trash2, GripVertical, Settings2, TrendingUp, TrendingDown, Minus, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { EditExerciseDialog } from "./EditExerciseDialog";
@@ -141,6 +141,36 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
       workoutId, 
       setData: newData,
       completed: allDone
+    });
+  };
+
+  const addSet = () => {
+    const last = setData[setData.length - 1];
+    const next: SetDataEntry = {
+      reps: last?.reps ?? exercise.reps ?? 1,
+      weight: last?.weight ?? exercise.weight ?? 0,
+      completed: false,
+    };
+    const newData = [...setData, next];
+    updateExercise.mutate({
+      id: exercise.id,
+      workoutId,
+      setData: newData,
+      sets: newData.length,
+      completed: false,
+    });
+  };
+
+  const removeLastSet = () => {
+    if (setData.length <= 1) return;
+    const newData = setData.slice(0, -1);
+    const allDone = newData.length > 0 && newData.every((s) => Boolean(s.completed));
+    updateExercise.mutate({
+      id: exercise.id,
+      workoutId,
+      setData: newData,
+      sets: newData.length,
+      completed: allDone,
     });
   };
 
@@ -311,6 +341,33 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
                 </div>
               </div>
             ))}
+
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="w-full"
+                onClick={addSet}
+                data-testid={`button-add-set-${exercise.id}`}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add set
+              </Button>
+
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="w-full"
+                onClick={removeLastSet}
+                disabled={setData.length <= 1}
+                data-testid={`button-remove-last-set-${exercise.id}`}
+              >
+                <Minus className="mr-2 h-4 w-4" />
+                Remove last
+              </Button>
+            </div>
           </div>
         )}
       </div>

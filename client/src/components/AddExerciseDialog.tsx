@@ -62,7 +62,7 @@ export function AddExerciseDialog({ dayId, workoutId }: AddExerciseDialogProps) 
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      sets: 3,
+      sets: 1,
       reps: 10,
       notes: "",
       completed: false,

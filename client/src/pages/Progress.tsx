@@ -316,7 +316,7 @@ export default function Progress() {
                         </span>
                         {session.totalVolume && session.totalVolume > 0 && (
                           <span className="font-mono text-orange-500">
-                            {(session.totalVolume / 1000).toFixed(1)}t vol
+                            {Math.round(session.totalVolume).toLocaleString()}kg vol
                           </span>
                         )}
                       </div>
