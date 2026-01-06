@@ -121,7 +121,9 @@ export async function duplicateDay(id: number) {
 /* ----------------------------- Exercises ----------------------------- */
 
 export async function createExercise(dayId: number, data: InsertExercise) {
-  setDataSchema.parse(data.setData);
+  if (data.setData != null) {
+    setDataSchema.parse(data.setData);
+  }
 
   const [exercise] = await db
     .insert(exercises)
@@ -132,7 +134,7 @@ export async function createExercise(dayId: number, data: InsertExercise) {
 }
 
 export async function updateExercise(id: number, updates: Partial<InsertExercise>) {
-  if ("setData" in updates) {
+  if ("setData" in updates && updates.setData != null) {
     setDataSchema.parse(updates.setData);
   }
 
