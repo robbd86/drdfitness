@@ -73,6 +73,7 @@ export async function apiFetch<T>(
   try {
     const response = await fetch(withApiBase(input), {
       ...init,
+      credentials: init?.credentials ?? "include",
       headers: {
         ...(init?.headers || {}),
         // Ensure JSON by default for API calls

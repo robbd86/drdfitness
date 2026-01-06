@@ -34,7 +34,12 @@ import {
   insertExerciseSchema,
 } from "@shared/schema";
 
+import { requireAuth } from "./middleware/requireAuth";
+
 const router = Router();
+
+// Example protection: all /api/workouts* routes require a logged-in session.
+router.use("/workouts", requireAuth);
 
 /* ----------------------------- Workouts ----------------------------- */
 

@@ -6,14 +6,32 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Home from "@/pages/Home";
 import WorkoutDetail from "@/pages/WorkoutDetail";
 import Progress from "@/pages/Progress";
+import Login from "@/pages/Login";
+import Register from "@/pages/Register";
 import NotFound from "@/pages/not-found";
+import { RequireAuth } from "@/components/RequireAuth";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/workout/:id" component={WorkoutDetail} />
-      <Route path="/progress" component={Progress} />
+      <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
+
+      <Route path="/">
+        <RequireAuth>
+          <Home />
+        </RequireAuth>
+      </Route>
+      <Route path="/workout/:id">
+        <RequireAuth>
+          <WorkoutDetail />
+        </RequireAuth>
+      </Route>
+      <Route path="/progress">
+        <RequireAuth>
+          <Progress />
+        </RequireAuth>
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );
