@@ -2,8 +2,22 @@ import path from "path";
 import dotenv from "dotenv";
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
-import * as appSchema from "@shared/schema";
-import * as authSchema from "./db/schema/auth";
+
+// Import only Drizzle table definitions and relations, NOT Zod schemas or types
+import {
+  workouts,
+  workoutDays,
+  exercises,
+  workoutLogs,
+  workoutSessions,
+  exerciseLibrary,
+  scheduledWorkouts,
+  workoutsRelations,
+  workoutDaysRelations,
+  exercisesRelations,
+} from "@shared/schema";
+
+import { users, sessions } from "./db/schema/auth";
 
 dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
@@ -19,4 +33,21 @@ if (!connectionString) {
 }
 
 export const pool = new Pool({ connectionString });
-export const db = drizzle(pool, { schema: { ...appSchema, ...authSchema } });
+
+// Only pass table definitions and relations to Drizzle schema
+export const db = drizzle(pool, {
+  schema: {
+    workouts,
+    workoutDays,
+    exercises,
+    workoutLogs,
+    workoutSessions,
+    exerciseLibrary,
+    scheduledWorkouts,
+    workoutsRelations,
+    workoutDaysRelations,
+    exercisesRelations,
+    users,
+    sessions,
+  },
+});
