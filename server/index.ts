@@ -78,6 +78,14 @@ if (process.env.NODE_ENV === "production" && !process.env.PORT) {
 
 app.listen(PORT, "0.0.0.0", async () => {
   console.log(`✅ Server running on port ${PORT}`);
+
+  // Basic self-check to confirm the app is responding from inside the container
+  try {
+    const res = await fetch(`http://127.0.0.1:${PORT}/health`);
+    console.log(`✅ Self-check /health responded ${res.status}`);
+  } catch (err) {
+    console.error("❌ Self-check /health failed:", err);
+  }
   
   // Seed exercise library with default exercises
   try {
