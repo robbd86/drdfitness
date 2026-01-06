@@ -81,6 +81,12 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
   const lastLog = previousLogs?.[0];
 
   const setData: SetDataEntry[] = (exercise.setData as SetDataEntry[] | null) ?? [];
+
+  const formatKg = (value: number) =>
+    value.toLocaleString(undefined, {
+      minimumFractionDigits: Number.isInteger(value) ? 0 : 1,
+      maximumFractionDigits: 1,
+    });
   
   // Calculate if current weight is higher/lower than last session
   const currentMaxWeight = setData.reduce(
@@ -142,6 +148,44 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
       setData: newData,
       completed: allDone
     });
+  };
+
+  const applyProgression = (target: { weight: number; reps: number }) => {
+    if (!setData.length) return;
+    const newData = setData.map((s) => ({
+      ...s,
+      weight: target.weight,
+      reps: target.reps,
+      completed: false,
+    }));
+
+    updateExercise.mutate({
+      id: exercise.id,
+      workoutId,
+      weight: target.weight,
+      reps: target.reps,
+      setData: newData,
+      completed: false,
+    });
+  };
+
+  const getProgressionSuggestions = () => {
+    if (!lastLog) return [] as Array<{ label: string; target: { weight: number; reps: number } }>;
+    const lastWeight = Number(lastLog.weight ?? 0);
+    const lastReps = Number(lastLog.reps ?? 0);
+    if (!(lastWeight > 0) || !(lastReps > 0)) return [];
+
+    const weightStep = 2.5;
+    return [
+      {
+        label: `Aim: ${formatKg(lastWeight)}kg × ${lastReps + 1}`,
+        target: { weight: lastWeight, reps: lastReps + 1 },
+      },
+      {
+        label: `Aim: ${formatKg(lastWeight + weightStep)}kg × ${lastReps}`,
+        target: { weight: lastWeight + weightStep, reps: lastReps },
+      },
+    ];
   };
 
   const addSet = () => {
@@ -298,6 +342,33 @@ export function ExerciseItem({ exercise, workoutId }: ExerciseItemProps) {
 
         {showSets && (
           <div className="mt-4 space-y-2 border-t border-border/20 pt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+            {(() => {
+              const suggestions = getProgressionSuggestions();
+              if (!suggestions.length) return null;
+              return (
+                <div className="p-2 rounded-lg bg-orange-500/5 border border-orange-500/20">
+                  <div className="text-xs text-muted-foreground mb-2">
+                    Progressive overload suggestion (based on last session)
+                  </div>
+                  <div className="grid grid-cols-1 gap-2">
+                    {suggestions.map((s) => (
+                      <Button
+                        key={s.label}
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="justify-start"
+                        onClick={() => applyProgression(s.target)}
+                        data-testid={`button-apply-progression-${exercise.id}-${s.target.weight}-${s.target.reps}`}
+                      >
+                        {s.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
             {setData.map((set, idx) => (
               <div 
                 key={idx} 
