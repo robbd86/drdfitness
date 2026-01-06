@@ -76,8 +76,9 @@ if (process.env.NODE_ENV === "production" && !process.env.PORT) {
   process.exit(1);
 }
 
-app.listen(PORT, "0.0.0.0", async () => {
-  console.log(`✅ Server running on port ${PORT}`);
+const server = app.listen(PORT, async () => {
+  const addr = server.address();
+  console.log(`✅ Server running on port ${PORT}`, addr);
 
   // Basic self-check to confirm the app is responding from inside the container
   try {
