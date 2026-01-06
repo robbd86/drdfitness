@@ -47,7 +47,7 @@ export function AddExerciseDialog({ dayId, workoutId }: AddExerciseDialogProps) 
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const { toast } = useToast();
   const createExercise = useCreateExercise();
   const { data: workout } = useWorkout(workoutId);
@@ -130,12 +130,15 @@ export function AddExerciseDialog({ dayId, workoutId }: AddExerciseDialogProps) 
               render={({ field }) => (
                 <FormItem className="relative">
                   <FormLabel>Exercise Name</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Input 
-                        placeholder="e.g. Bench Press" 
-                        {...field} 
-                        ref={inputRef}
+                  <div className="relative">
+                    <FormControl>
+                      <Input
+                        placeholder="e.g. Bench Press"
+                        {...field}
+                        ref={(el) => {
+                          field.ref(el);
+                          inputRef.current = el;
+                        }}
                         autoComplete="off"
                         onChange={(e) => {
                           field.onChange(e);
@@ -145,28 +148,28 @@ export function AddExerciseDialog({ dayId, workoutId }: AddExerciseDialogProps) 
                         onFocus={() => setShowSuggestions(true)}
                         onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                       />
-                      {showSuggestions && suggestions && suggestions.length > 0 && (
-                        <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-48 overflow-auto">
-                          {suggestions.map((item) => (
-                            <button
-                              key={item.id}
-                              type="button"
-                              className="w-full px-3 py-2 text-left hover:bg-secondary/50 flex items-center justify-between group"
-                              onMouseDown={() => handleSelectSuggestion(item.name)}
-                            >
-                              <div>
-                                <span className="font-medium">{item.name}</span>
-                                <span className="text-xs text-muted-foreground ml-2">{item.muscleGroup}</span>
-                              </div>
-                              {item.equipment && (
-                                <span className="text-xs text-muted-foreground">{item.equipment}</span>
-                              )}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </FormControl>
+                    </FormControl>
+                    {showSuggestions && suggestions && suggestions.length > 0 && (
+                      <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-48 overflow-auto">
+                        {suggestions.map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            className="w-full px-3 py-2 text-left hover:bg-secondary/50 flex items-center justify-between group"
+                            onMouseDown={() => handleSelectSuggestion(item.name)}
+                          >
+                            <div>
+                              <span className="font-medium">{item.name}</span>
+                              <span className="text-xs text-muted-foreground ml-2">{item.muscleGroup}</span>
+                            </div>
+                            {item.equipment && (
+                              <span className="text-xs text-muted-foreground">{item.equipment}</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
