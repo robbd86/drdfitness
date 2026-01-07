@@ -18,39 +18,14 @@ const app = express();
 
 /* ----------------------------- CORS ----------------------------- */
 
-function parseOrigins(value?: string): string[] {
-  if (!value) return [];
-  return value
-    .split(/[\s,]+/)
-    .map((v) => v.trim())
-    .filter(Boolean);
-}
-
-const envFrontendOrigins = parseOrigins(
-  process.env.VITE_FRONTEND_URL || process.env.FRONTEND_URL
-);
-
-const allowedOrigins = new Set([
-  ...envFrontendOrigins,
-  "https://www.drdfitness.co.uk",
-  "https://drdfitness.co.uk",
-  "https://drdfitness.vercel.app",
-  "http://localhost:5173",
-  "http://localhost:3000",
-]);
-
 const corsOptions: cors.CorsOptions = {
-  origin: (origin, callback) => {
-    // Allow server-to-server / curl / healthchecks
-    if (!origin) return callback(null, true);
-
-    if (allowedOrigins.has(origin)) {
-      return callback(null, true);
-    }
-
-    console.warn("Blocked by CORS:", origin);
-    callback(new Error("Not allowed by CORS"));
-  },
+  origin: [
+    "https://www.drdfitness.co.uk",
+    "https://drdfitness.co.uk",
+    "https://drdfitness.vercel.app",
+    "http://localhost:5173",
+    "http://localhost:3000",
+  ],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
