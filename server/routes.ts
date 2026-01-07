@@ -38,14 +38,14 @@ import { requireAuth } from "./middleware/requireAuth";
 
 const router = Router();
 
-// Example protection: all /api/workouts* routes require a logged-in session.
-router.use("/workouts", requireAuth);
+// All API routes below require a logged-in session.
+router.use(requireAuth);
 
 /* ----------------------------- Workouts ----------------------------- */
 
 router.get("/workouts", async (_req, res, next) => {
   try {
-    res.json(await listWorkouts());
+    res.json(await listWorkouts(_req.session.userId!));
   } catch (err) {
     next(err);
   }
@@ -53,7 +53,7 @@ router.get("/workouts", async (_req, res, next) => {
 
 router.get("/workouts/:id", async (req, res, next) => {
   try {
-    const workout = await getWorkout(Number(req.params.id));
+    const workout = await getWorkout(req.session.userId!, Number(req.params.id));
     if (!workout) return res.status(404).json({ message: "Workout not found" });
     res.json(workout);
   } catch (err) {
@@ -64,7 +64,7 @@ router.get("/workouts/:id", async (req, res, next) => {
 router.post("/workouts", async (req, res, next) => {
   try {
     const data = insertWorkoutSchema.parse(req.body);
-    const workout = await createWorkout(data);
+    const workout = await createWorkout(req.session.userId!, data);
     res.status(201).json(workout);
   } catch (err) {
     next(err);
@@ -73,7 +73,7 @@ router.post("/workouts", async (req, res, next) => {
 
 router.delete("/workouts/:id", async (req, res, next) => {
   try {
-    await deleteWorkout(Number(req.params.id));
+    await deleteWorkout(req.session.userId!, Number(req.params.id));
     res.status(204).end();
   } catch (err) {
     next(err);
@@ -85,7 +85,7 @@ router.delete("/workouts/:id", async (req, res, next) => {
 router.post("/workouts/:workoutId/days", async (req, res, next) => {
   try {
     const data = insertDaySchema.parse(req.body);
-    const day = await createDay(Number(req.params.workoutId), data);
+    const day = await createDay(req.session.userId!, Number(req.params.workoutId), data);
     res.status(201).json(day);
   } catch (err) {
     next(err);
@@ -94,7 +94,7 @@ router.post("/workouts/:workoutId/days", async (req, res, next) => {
 
 router.delete("/days/:id", async (req, res, next) => {
   try {
-    await deleteDay(Number(req.params.id));
+    await deleteDay(req.session.userId!, Number(req.params.id));
     res.status(204).end();
   } catch (err) {
     next(err);
@@ -103,7 +103,7 @@ router.delete("/days/:id", async (req, res, next) => {
 
 router.post("/days/:id/duplicate", async (req, res, next) => {
   try {
-    const day = await duplicateDay(Number(req.params.id));
+    const day = await duplicateDay(req.session.userId!, Number(req.params.id));
     res.status(201).json(day);
   } catch (err) {
     next(err);
@@ -112,7 +112,7 @@ router.post("/days/:id/duplicate", async (req, res, next) => {
 
 router.post("/workouts/:workoutId/days/reorder", async (req, res, next) => {
   try {
-    await reorderDays(Number(req.params.workoutId), req.body.dayIds);
+    await reorderDays(req.session.userId!, Number(req.params.workoutId), req.body.dayIds);
     res.json({ success: true });
   } catch (err) {
     next(err);
@@ -124,7 +124,7 @@ router.post("/workouts/:workoutId/days/reorder", async (req, res, next) => {
 router.post("/days/:dayId/exercises", async (req, res, next) => {
   try {
     const data = insertExerciseSchema.parse(req.body);
-    const exercise = await createExercise(Number(req.params.dayId), data);
+    const exercise = await createExercise(req.session.userId!, Number(req.params.dayId), data);
     res.status(201).json(exercise);
   } catch (err) {
     next(err);
@@ -133,7 +133,7 @@ router.post("/days/:dayId/exercises", async (req, res, next) => {
 
 router.patch("/exercises/:id", async (req, res, next) => {
   try {
-    const exercise = await updateExercise(Number(req.params.id), req.body);
+    const exercise = await updateExercise(req.session.userId!, Number(req.params.id), req.body);
     res.json(exercise);
   } catch (err) {
     next(err);
@@ -142,7 +142,7 @@ router.patch("/exercises/:id", async (req, res, next) => {
 
 router.delete("/exercises/:id", async (req, res, next) => {
   try {
-    await deleteExercise(Number(req.params.id));
+    await deleteExercise(req.session.userId!, Number(req.params.id));
     res.status(204).end();
   } catch (err) {
     next(err);
@@ -151,7 +151,7 @@ router.delete("/exercises/:id", async (req, res, next) => {
 
 router.post("/days/:dayId/exercises/reorder", async (req, res, next) => {
   try {
-    await reorderExercises(Number(req.params.dayId), req.body.exerciseIds);
+    await reorderExercises(req.session.userId!, Number(req.params.dayId), req.body.exerciseIds);
     res.json({ success: true });
   } catch (err) {
     next(err);
@@ -166,6 +166,7 @@ router.post(
     try {
       const startedAt = req.body.startedAt ? new Date(req.body.startedAt) : undefined;
       const session = await logCompletedDay(
+        req.session.userId!,
         Number(req.params.workoutId),
         Number(req.params.dayId),
         startedAt
@@ -179,7 +180,7 @@ router.post(
 
 router.get("/sessions", async (_req, res, next) => {
   try {
-    res.json(await getWorkoutSessions());
+    res.json(await getWorkoutSessions(_req.session.userId!));
   } catch (err) {
     next(err);
   }
@@ -189,7 +190,7 @@ router.get("/sessions", async (_req, res, next) => {
 
 router.get("/logs", async (_req, res, next) => {
   try {
-    const data = await exportData();
+    const data = await exportData(_req.session.userId!);
     res.json(data.logs);
   } catch (err) {
     next(err);
@@ -198,7 +199,7 @@ router.get("/logs", async (_req, res, next) => {
 
 router.get("/logs/exercise/:name", async (req, res, next) => {
   try {
-    const logs = await getLogsByExerciseName(decodeURIComponent(req.params.name));
+    const logs = await getLogsByExerciseName(req.session.userId!, decodeURIComponent(req.params.name));
     res.json(logs);
   } catch (err) {
     next(err);
@@ -207,7 +208,7 @@ router.get("/logs/exercise/:name", async (req, res, next) => {
 
 router.get("/data/export", async (_req, res, next) => {
   try {
-    res.json(await exportData());
+    res.json(await exportData(_req.session.userId!));
   } catch (err) {
     next(err);
   }
@@ -216,7 +217,7 @@ router.get("/data/export", async (_req, res, next) => {
 router.post("/data/import", async (req, res, next) => {
   try {
     const { replaceExisting, ...data } = req.body;
-    await importData(data, Boolean(replaceExisting));
+    await importData(req.session.userId!, data, Boolean(replaceExisting));
     res.json({ success: true });
   } catch (err) {
     next(err);
@@ -225,7 +226,7 @@ router.post("/data/import", async (req, res, next) => {
 
 router.post("/data/reset", async (_req, res, next) => {
   try {
-    await resetData();
+    await resetData(_req.session.userId!);
     res.json({ success: true });
   } catch (err) {
     next(err);
@@ -264,7 +265,7 @@ router.post("/exercise-library", async (req, res, next) => {
 
 router.get("/schedule", async (_req, res, next) => {
   try {
-    res.json(await listScheduledWorkouts());
+    res.json(await listScheduledWorkouts(_req.session.userId!));
   } catch (err) {
     next(err);
   }
@@ -272,7 +273,7 @@ router.get("/schedule", async (_req, res, next) => {
 
 router.get("/schedule/today", async (_req, res, next) => {
   try {
-    res.json(await getTodaySchedule());
+    res.json(await getTodaySchedule(_req.session.userId!));
   } catch (err) {
     next(err);
   }
@@ -280,7 +281,7 @@ router.get("/schedule/today", async (_req, res, next) => {
 
 router.post("/schedule", async (req, res, next) => {
   try {
-    const scheduled = await createScheduledWorkout({
+    const scheduled = await createScheduledWorkout(req.session.userId!, {
       workoutId: req.body.workoutId,
       dayId: req.body.dayId,
       scheduledDate: new Date(req.body.scheduledDate),
@@ -294,7 +295,7 @@ router.post("/schedule", async (req, res, next) => {
 
 router.delete("/schedule/:id", async (req, res, next) => {
   try {
-    await deleteScheduledWorkout(Number(req.params.id));
+    await deleteScheduledWorkout(req.session.userId!, Number(req.params.id));
     res.status(204).end();
   } catch (err) {
     next(err);

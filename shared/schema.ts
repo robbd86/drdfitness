@@ -15,6 +15,8 @@ import { z } from "zod";
 
 export const workouts = pgTable("workouts", {
   id: serial("id").primaryKey(),
+  // Nullable for safer rollout; new workouts will always set it.
+  userId: text("user_id"),
   name: text("name").notNull(),
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
