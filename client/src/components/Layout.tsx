@@ -1,8 +1,10 @@
 import { type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { Dumbbell, Home, TrendingUp } from "lucide-react";
+import { Dumbbell, Home, TrendingUp, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { InstallPrompt } from "./InstallPrompt";
+import { useAuth } from "@/context/AuthContext";
+import { Button } from "./ui/button";
 
 interface NavItem {
   path: string;
@@ -17,7 +19,13 @@ const navItems: NavItem[] = [
 ];
 
 export function Layout({ children }: { children: ReactNode }) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
+  const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    setLocation("/login");
+  };
 
   return (
     <div className="relative min-h-[100dvh] bg-black text-foreground flex flex-col">
@@ -54,6 +62,17 @@ export function Layout({ children }: { children: ReactNode }) {
                   <span className="hidden md:inline">{item.label}</span>
                 </Link>
               )
+            )}
+            {user && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
+                className="flex items-center gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="hidden md:inline">Logout</span>
+              </Button>
             )}
           </nav>
         </div>
