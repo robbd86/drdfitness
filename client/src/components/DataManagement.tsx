@@ -12,7 +12,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Upload, Trash2, FileJson, FileSpreadsheet } from "lucide-react";
+import { Upload, Trash2, FileJson, FileSpreadsheet, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { dataApi } from "@/services/api";
@@ -115,7 +115,22 @@ export function DataManagement() {
         <CardTitle className="text-lg font-bold" data-testid="text-data-management-title">Data Management</CardTitle>
         <CardDescription>Export, import, or reset your workout data</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6">
+        {/* Data Ownership Section */}
+        <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center flex-shrink-0">
+              <Shield className="w-4 h-4 text-orange-500" />
+            </div>
+            <div>
+              <h4 className="font-semibold text-sm mb-1">Your data, always yours</h4>
+              <p className="text-sm text-muted-foreground">
+                You can export or delete your data at any time. Use the buttons below to manage your workout data.
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"

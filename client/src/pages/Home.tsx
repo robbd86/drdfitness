@@ -1,10 +1,10 @@
-import { useWorkouts, useDeleteWorkout, useTodaySchedule } from "@/hooks/use-workouts";
+import { useWorkouts, useDeleteWorkout, useTodaySchedule, useWorkoutSessions } from "@/hooks/use-workouts";
 import { CreateWorkoutDialog } from "@/components/CreateWorkoutDialog";
 import { DataManagement } from "@/components/DataManagement";
 import { Layout } from "@/components/Layout";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Trash2, ChevronRight, Calendar, Dumbbell, Zap, ArrowRight } from "lucide-react";
+import { Trash2, ChevronRight, Calendar, Dumbbell, Zap, ArrowRight, CheckCircle2, TrendingUp, Target, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 export default function Home() {
   const { data: workouts, isLoading } = useWorkouts();
   const { data: todaySchedule } = useTodaySchedule();
+  const { data: sessions } = useWorkoutSessions();
   const deleteWorkout = useDeleteWorkout();
   const { toast } = useToast();
 
@@ -36,6 +37,12 @@ export default function Home() {
     });
   };
 
+  // Calculate progress stats
+  const totalSessions = sessions?.length || 0;
+  const lastWorkoutDate = sessions?.[0]?.completedAt 
+    ? new Date(sessions[0].completedAt) 
+    : null;
+
   return (
     <Layout>
       <div className="max-w-4xl mx-auto space-y-8">
@@ -50,6 +57,52 @@ export default function Home() {
           </div>
           <CreateWorkoutDialog />
         </div>
+
+        {/* Progress Summary Card */}
+        {!isLoading && totalSessions > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <Card className="p-6 bg-gradient-to-br from-slate-900/90 to-slate-800/90 border-orange-500/20">
+              <div className="flex items-center gap-2 mb-4">
+                <TrendingUp className="w-5 h-5 text-orange-500" />
+                <h3 className="text-lg font-bold">Your Progress</h3>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center">
+                    <Target className="w-5 h-5 text-orange-500" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{totalSessions}</p>
+                    <p className="text-xs text-muted-foreground">Workouts Completed</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center">
+                    <Dumbbell className="w-5 h-5 text-orange-500" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{workouts?.length || 0}</p>
+                    <p className="text-xs text-muted-foreground">Total Workouts</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-orange-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold">
+                      {lastWorkoutDate ? format(lastWorkoutDate, 'MMM d, yyyy') : 'No sessions'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Last Workout</p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Today's Scheduled Workout */}
         {todaySchedule && todaySchedule.length > 0 && !todaySchedule[0].completed && (
@@ -73,6 +126,37 @@ export default function Home() {
                     Start <ArrowRight className="w-4 h-4" />
                   </Button>
                 </Link>
+              </div>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Onboarding Checklist - Show only for new users */}
+        {!isLoading && workouts && workouts.length < 1 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <Card className="p-6 bg-gradient-to-br from-slate-900/90 to-slate-800/90 border-orange-500/20">
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <span className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center">
+                  🎯
+                </span>
+                Getting Started
+              </h3>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 text-muted-foreground">
+                  <CheckCircle2 className="w-5 h-5 text-orange-500/50" />
+                  <span>Add your first exercise</span>
+                </div>
+                <div className="flex items-center gap-3 text-muted-foreground">
+                  <CheckCircle2 className="w-5 h-5 text-orange-500/50" />
+                  <span>Log your first set</span>
+                </div>
+                <div className="flex items-center gap-3 text-muted-foreground">
+                  <CheckCircle2 className="w-5 h-5 text-orange-500/50" />
+                  <span>Track your progress</span>
+                </div>
               </div>
             </Card>
           </motion.div>
