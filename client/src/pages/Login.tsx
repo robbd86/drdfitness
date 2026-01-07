@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Layout } from "@/components/Layout";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -73,6 +73,16 @@ export default function Login() {
               {submitting ? "Signing in..." : "Sign in"}
             </Button>
           </form>
+
+          <div className="mt-4 text-center text-sm text-muted-foreground">
+            Don&apos;t have an account?{" "}
+            <Link
+              href="/register"
+              className="font-bold text-orange-500 hover:opacity-80 transition-opacity"
+            >
+              Create one
+            </Link>
+          </div>
         </Card>
       </div>
     </Layout>
