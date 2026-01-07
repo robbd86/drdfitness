@@ -32,6 +32,8 @@ const envFrontendOrigins = parseOrigins(
 
 const allowedOrigins = new Set([
   ...envFrontendOrigins,
+  "https://www.drdfitness.co.uk",
+  "https://drdfitness.co.uk",
   "https://drdfitness.vercel.app",
   "http://localhost:5173",
   "http://localhost:3000",
@@ -50,8 +52,8 @@ const corsOptions: cors.CorsOptions = {
     callback(new Error("Not allowed by CORS"));
   },
   credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  // Don't over-restrict allowed headers; let the CORS middleware reflect request headers.
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   optionsSuccessStatus: 204,
 };
 
