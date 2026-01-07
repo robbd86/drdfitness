@@ -6,13 +6,23 @@ export async function sendAdminSignupEmail(email: string) {
   try {
     const fromEmail = process.env.FROM_EMAIL;
     const adminEmail = process.env.ADMIN_EMAIL;
+    const apiKey = process.env.RESEND_API_KEY;
 
-    if (!fromEmail || !adminEmail) {
-      console.error("FROM_EMAIL or ADMIN_EMAIL environment variables not set");
+    if (!apiKey) {
+      console.error("❌ RESEND_API_KEY environment variable not set");
       return;
     }
 
-    await resend.emails.send({
+    if (!fromEmail || !adminEmail) {
+      console.error("❌ FROM_EMAIL or ADMIN_EMAIL environment variables not set");
+      return;
+    }
+
+    console.log(`📧 Sending admin signup notification for: ${email}`);
+    console.log(`   From: ${fromEmail}`);
+    console.log(`   To: ${adminEmail}`);
+
+    const result = await resend.emails.send({
       from: fromEmail,
       to: adminEmail,
       subject: "New DRD Fitness signup",
@@ -23,8 +33,10 @@ export async function sendAdminSignupEmail(email: string) {
       `,
       text: `New User Signup\n\nA new user has signed up for DRD Fitness:\n\nEmail: ${email}`,
     });
+
+    console.log(`✅ Admin email sent successfully. ID: ${result.data?.id}`);
   } catch (err) {
-    console.error("Failed to send admin signup email:", err);
+    console.error("❌ Failed to send admin signup email:", err);
     // Fail gracefully - don't throw
   }
 }

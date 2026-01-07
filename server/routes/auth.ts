@@ -66,8 +66,8 @@ router.post("/register", async (req, res, next) => {
     await saveSession(req);
 
     // Send admin notification (fire-and-forget, don't block response)
-    sendAdminSignupEmail(created.email).catch(() => {
-      // Silently ignore email failures
+    sendAdminSignupEmail(created.email).catch((err) => {
+      console.error("Error sending admin signup email:", err);
     });
 
     res.status(201).json({ user: toSafeUser(created) });
