@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { users } from "../db/schema/auth";
 import { hashPassword, verifyPassword } from "../utils/password";
-import { sendAdminSignupEmail } from "../utils/email";
+import { sendAdminSignupEmail, sendWelcomeEmail } from "../utils/email";
 
 declare module "express-session" {
   interface SessionData {
@@ -68,6 +68,12 @@ router.post("/register", async (req, res, next) => {
     // Send admin notification (fire-and-forget, don't block response)
     sendAdminSignupEmail(created.email).catch((err) => {
       console.error("Error sending admin signup email:", err);
+    });
+
+    // Send welcome email to user (fire-and-forget, don't block response)
+    console.log(`Welcome email triggered for ${created.email}`);
+    sendWelcomeEmail(created.email).catch((err) => {
+      console.error("Error sending welcome email:", err);
     });
 
     res.status(201).json({ user: toSafeUser(created) });
