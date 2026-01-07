@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { users } from "../db/schema/auth";
 import { hashPassword, verifyPassword } from "../utils/password";
+import { sendAdminSignupEmail } from "../utils/email";
 
 declare module "express-session" {
   interface SessionData {
@@ -63,6 +64,11 @@ router.post("/register", async (req, res, next) => {
     await regenerateSession(req);
     req.session.userId = created.id;
     await saveSession(req);
+
+    // Send admin notification (fire-and-forget, don't block response)
+    sendAdminSignupEmail(created.email).catch(() => {
+      // Silently ignore email failures
+    });
 
     res.status(201).json({ user: toSafeUser(created) });
   } catch (err: any) {
