@@ -112,6 +112,7 @@ app.get("/health", (_req, res) => {
 /* ----------------------------- API ----------------------------- */
 
 app.use("/api/auth", authRoutes);
+app.use("/auth", authRoutes);
 app.use("/api", routes);
 
 /* ----------------------------- Error Handler ----------------------------- */

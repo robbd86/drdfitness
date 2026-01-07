@@ -59,7 +59,9 @@ async function buildAll() {
     define: {
       "process.env.NODE_ENV": '"production"',
     },
-    minify: true,
+    // Keep stack traces readable in production logs (Railway crash-loop debugging)
+    minify: false,
+    sourcemap: true,
     external: externals,
     logLevel: "info",
   });

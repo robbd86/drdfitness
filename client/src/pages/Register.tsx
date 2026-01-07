@@ -4,7 +4,6 @@ import { Layout } from "@/components/Layout";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import * as authApi from "@/lib/auth";
 import { useAuth } from "@/context/AuthContext";
 
 type FieldErrors = {
@@ -50,6 +49,68 @@ export default function Register() {
 
   const canSubmit = Object.keys(fieldErrors).length === 0 && !submitting;
 
+  const extractErrorMessage = (status: number, body: unknown): string => {
+    const statusSuffix = `(${status})`;
+
+    if (typeof body === "string" && body.trim()) {
+      return `${body} ${statusSuffix}`;
+    }
+
+    if (typeof body === "object" && body) {
+      const anyBody = body as any;
+      if (typeof anyBody.message === "string" && anyBody.message.trim()) {
+        // Surface per-field validation messages when present (Zod flatten format)
+        const fieldErrorsObj = anyBody?.errors?.fieldErrors;
+        if (fieldErrorsObj && typeof fieldErrorsObj === "object") {
+          const details: string[] = [];
+          for (const [field, messages] of Object.entries(fieldErrorsObj)) {
+            if (Array.isArray(messages) && messages.length) {
+              details.push(`${field}: ${messages.join(", ")}`);
+            }
+          }
+
+          if (details.length) {
+            return `${anyBody.message} — ${details.join(" · ")} ${statusSuffix}`;
+          }
+        }
+
+        return `${anyBody.message} ${statusSuffix}`;
+      }
+    }
+
+    return `Registration failed ${statusSuffix}`;
+  };
+
+  const registerWithFetch = async (email: string, password: string) => {
+    const base = (import.meta as any).env?.VITE_API_URL as string | undefined;
+    const trimmedBase = base ? String(base).replace(/\/$/, "") : "";
+    const endpoint = trimmedBase ? `${trimmedBase}/auth/register` : "/auth/register";
+
+    const res = await fetch(endpoint, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const contentType = res.headers.get("content-type") || "";
+    let body: unknown = undefined;
+    try {
+      body = contentType.includes("application/json") ? await res.json() : await res.text();
+    } catch {
+      body = undefined;
+    }
+
+    if (!res.ok) {
+      throw new Error(extractErrorMessage(res.status, body));
+    }
+
+    return body;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
@@ -58,9 +119,9 @@ export default function Register() {
 
     setSubmitting(true);
     try {
-      await authApi.register(email, password);
+      await registerWithFetch(email, password);
       await refresh();
-      setLocation("/login");
+      setLocation("/workouts");
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Registration failed");
     } finally {

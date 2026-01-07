@@ -17,6 +17,12 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
 
+      <Route path="/workouts">
+        <RequireAuth>
+          <Home />
+        </RequireAuth>
+      </Route>
+
       <Route path="/">
         <RequireAuth>
           <Home />
