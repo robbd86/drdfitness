@@ -93,12 +93,15 @@ app.use(
     resave: false,
     saveUninitialized: false,
     proxy: isProd,
+    name: "connect.sid",
     cookie: {
       secure: isProd,
-      // Cross-site cookies are required for Railway (API) + Vercel (frontend) in production.
+      // Cross-site cookies are required for Railway (API) + custom domain (frontend) in production.
       // In local dev, we keep it simpler/safer.
       sameSite: isProd ? "none" : "lax",
       httpOnly: true,
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      domain: undefined, // Let the browser handle this - don't set cross-domain
     },
   })
 );
