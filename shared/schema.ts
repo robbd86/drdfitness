@@ -7,6 +7,7 @@ import {
   boolean,
   timestamp,
   jsonb,
+  real,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { z } from "zod";
@@ -35,7 +36,7 @@ export const exercises = pgTable("exercises", {
   name: text("name").notNull(),
   sets: integer("sets"),
   reps: integer("reps"),
-  weight: integer("weight"),
+  weight: real("weight"),
   notes: text("notes"),
   order: integer("order").notNull(),
   completed: boolean("completed").default(false),
@@ -52,7 +53,7 @@ export const workoutLogs = pgTable("workout_logs", {
   exerciseName: text("exercise_name").notNull(),
   sets: integer("sets"),
   reps: integer("reps"),
-  weight: integer("weight"),
+  weight: real("weight"),
   totalVolume: integer("total_volume"),
   setData: jsonb("set_data"),
   completedAt: timestamp("completed_at").defaultNow().notNull(),
