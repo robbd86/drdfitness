@@ -3,7 +3,8 @@ import { useLocation } from "wouter";
 import { Layout } from "@/components/Layout";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { PasswordInput } from "../components/PasswordInput";
+import { LoadingButton } from "../components/LoadingButton";
 import { useAuth } from "@/context/AuthContext";
 
 type FieldErrors = {
@@ -19,7 +20,7 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   const fieldErrors = useMemo((): FieldErrors => {
@@ -47,7 +48,7 @@ export default function Register() {
     return errors;
   }, [email, password, confirmPassword]);
 
-  const canSubmit = Object.keys(fieldErrors).length === 0 && !submitting;
+  const canSubmit = Object.keys(fieldErrors).length === 0 && !isLoading;
 
   const extractErrorMessage = (status: number, body: unknown): string => {
     const statusSuffix = `(${status})`;
@@ -117,15 +118,17 @@ export default function Register() {
 
     if (!canSubmit) return;
 
-    setSubmitting(true);
+    setIsLoading(true);
     try {
-      await registerWithFetch(email, password);
-      await refresh();
-      setLocation("/workouts");
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Registration failed");
+      try {
+        await registerWithFetch(email, password);
+        await refresh();
+        setLocation("/workouts");
+      } catch (err) {
+        setFormError(err instanceof Error ? err.message : "Registration failed");
+      }
     } finally {
-      setSubmitting(false);
+      setIsLoading(false);
     }
   };
 
@@ -145,33 +148,39 @@ export default function Register() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                disabled={submitting}
+                disabled={isLoading}
               />
               {fieldErrors.email && <p className="mt-1 text-sm text-destructive">{fieldErrors.email}</p>}
             </div>
 
             <div>
               <label className="text-sm font-medium">Password</label>
-              <Input
-                type="password"
+              <PasswordInput
+                id="password"
+                name="password"
                 autoComplete="new-password"
+                required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                className=""
                 placeholder="••••••••"
-                disabled={submitting}
+                disabled={isLoading}
               />
               {fieldErrors.password && <p className="mt-1 text-sm text-destructive">{fieldErrors.password}</p>}
             </div>
 
             <div>
               <label className="text-sm font-medium">Confirm password</label>
-              <Input
-                type="password"
+              <PasswordInput
+                id="confirmPassword"
+                name="confirmPassword"
                 autoComplete="new-password"
+                required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
+                className=""
                 placeholder="••••••••"
-                disabled={submitting}
+                disabled={isLoading}
               />
               {fieldErrors.confirmPassword && (
                 <p className="mt-1 text-sm text-destructive">{fieldErrors.confirmPassword}</p>
@@ -184,9 +193,15 @@ export default function Register() {
               </div>
             )}
 
-            <Button type="submit" className="w-full font-bold gradient-primary" disabled={!canSubmit}>
-              {submitting ? "Creating account..." : "Create account"}
-            </Button>
+            <LoadingButton
+              type="submit"
+              className="w-full font-bold gradient-primary"
+              isLoading={isLoading}
+              loadingText="Creating account..."
+              disabled={!canSubmit}
+            >
+              Create account
+            </LoadingButton>
           </form>
         </Card>
       </div>

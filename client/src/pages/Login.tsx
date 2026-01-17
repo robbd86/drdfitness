@@ -3,7 +3,8 @@ import { Link, useLocation } from "wouter";
 import { Layout } from "@/components/Layout";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { LoadingButton } from "../components/LoadingButton";
+import { PasswordInput } from "../components/PasswordInput";
 import * as authApi from "@/lib/auth";
 import { useAuth } from "@/context/AuthContext";
 
@@ -13,13 +14,13 @@ export default function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setSubmitting(true);
+    setIsLoading(true);
     try {
       await authApi.login(email, password);
       await refresh();
@@ -27,7 +28,7 @@ export default function Login() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
-      setSubmitting(false);
+      setIsLoading(false);
     }
   };
 
@@ -44,22 +45,28 @@ export default function Login() {
               <Input
                 type="email"
                 autoComplete="email"
+                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 disabled={submitting}
+                disabled={isLoading}
               />
             </div>
 
             <div>
               <label className="text-sm font-medium">Password</label>
-              <Input
-                type="password"
+              <PasswordInput
+                id="password"
+                name="password"
                 autoComplete="current-password"
+                required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                className=""
                 placeholder="••••••••"
                 disabled={submitting}
+                disabled={isLoading}
               />
             </div>
 
@@ -69,9 +76,14 @@ export default function Login() {
               </div>
             )}
 
-            <Button type="submit" className="w-full font-bold gradient-primary" disabled={submitting}>
-              {submitting ? "Signing in..." : "Sign in"}
-            </Button>
+            <LoadingButton
+              type="submit"
+              className="w-full font-bold gradient-primary"
+              isLoading={isLoading}
+              loadingText="Signing in..."
+            >
+              Sign in
+            </LoadingButton>
           </form>
 
           <div className="mt-4 text-center text-sm text-muted-foreground">
