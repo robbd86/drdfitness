@@ -49,7 +49,6 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                disabled={submitting}
                 disabled={isLoading}
               />
             </div>
@@ -65,7 +64,6 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 className=""
                 placeholder="••••••••"
-                disabled={submitting}
                 disabled={isLoading}
               />
             </div>
