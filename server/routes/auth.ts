@@ -159,6 +159,16 @@ router.get("/me", async (req, res, next) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(userId);
+
+    if (!isUuid) {
+      await new Promise<void>((resolve) => {
+        req.session.destroy(() => resolve());
+      });
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
     const user = await db.query.users.findFirst({
       where: eq(users.id, userId),
     });

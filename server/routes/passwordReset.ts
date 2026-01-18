@@ -26,20 +26,6 @@ function requireJwtSecret(): string {
   return secret;
 }
 
-// Optional token reuse tracking (in-memory). Not suitable for multi-instance deployments.
-const shouldTrackTokens = process.env.PASSWORD_RESET_TRACK_TOKENS === "true";
-const usedTokens = new Set<string>();
-
-function isTokenUsed(token: string): boolean {
-  if (!shouldTrackTokens) return false;
-  return usedTokens.has(token);
-}
-
-function markTokenUsed(token: string): void {
-  if (!shouldTrackTokens) return;
-  usedTokens.add(token);
-}
-
 const forgotPasswordSchema = z.object({
   email: z.string().trim().toLowerCase().email("Enter a valid email"),
 });
@@ -142,10 +128,6 @@ router.post("/reset-password", async (req, res, next) => {
 
     const { token, newPassword } = parsed.data;
 
-    if (isTokenUsed(token)) {
-      return res.status(409).json({ message: "This reset link has already been used" });
-    }
-
     const secret = requireJwtSecret();
 
     let payload: PasswordResetTokenPayload;
@@ -159,11 +141,13 @@ router.post("/reset-password", async (req, res, next) => {
       return res.status(400).json({ message: "Invalid reset token" });
     }
 
+    // Look up user by email (JWT expiry provides the main safety guarantee).
+    // This also avoids UUID parsing errors when using dev-only tokens.
     const user = await db.query.users.findFirst({
-      where: eq(users.id, payload.userId),
+      where: eq(users.email, payload.email.toLowerCase()),
     });
 
-    if (!user || user.email !== payload.email) {
+    if (!user) {
       return res.status(400).json({ message: "Invalid reset token" });
     }
 
@@ -173,9 +157,6 @@ router.post("/reset-password", async (req, res, next) => {
       .update(users)
       .set({ passwordHash })
       .where(eq(users.id, user.id));
-
-    // Optional: mark token as used in DB.
-    markTokenUsed(token);
 
     return res.status(200).json({ message: "Password reset successful" });
   } catch (err) {

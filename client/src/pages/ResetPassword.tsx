@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { Layout } from "@/components/Layout";
 import { Card } from "@/components/ui/card";
 import { PasswordInput } from "@/components/PasswordInput";
@@ -7,14 +7,14 @@ import { LoadingButton } from "@/components/LoadingButton";
 import { resetPassword } from "@/lib/auth";
 
 export default function ResetPassword() {
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
+  const search = useSearch();
 
   const token = useMemo(() => {
-    const queryIndex = location.indexOf("?");
-    if (queryIndex === -1) return "";
-    const params = new URLSearchParams(location.slice(queryIndex + 1));
+    // In wouter, `useLocation()` is pathname-only; useSearch() contains the query string.
+    const params = new URLSearchParams(search);
     return params.get("token") || "";
-  }, [location]);
+  }, [search]);
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
