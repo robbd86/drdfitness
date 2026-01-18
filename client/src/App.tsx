@@ -8,6 +8,8 @@ import WorkoutDetail from "@/pages/WorkoutDetail";
 import Progress from "@/pages/Progress";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 import NotFound from "@/pages/not-found";
 import { RequireAuth } from "@/components/RequireAuth";
 
@@ -15,6 +17,8 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
       <Route path="/register" component={Register} />
 
       <Route path="/workouts">

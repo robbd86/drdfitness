@@ -10,6 +10,7 @@ dotenv.config();
 
 import routes from "./routes";
 import authRoutes from "./routes/auth";
+import passwordResetRoutes from "./routes/passwordReset";
 import { seedExerciseLibrary } from "./storage";
 
 const app = express();
@@ -93,7 +94,9 @@ app.get("/health", (_req, res) => {
 /* ----------------------------- API ----------------------------- */
 
 app.use("/api/auth", authRoutes);
+app.use("/api/auth", passwordResetRoutes);
 app.use("/auth", authRoutes);
+app.use("/auth", passwordResetRoutes);
 app.use("/api", routes);
 
 /* ----------------------------- Error Handler ----------------------------- */

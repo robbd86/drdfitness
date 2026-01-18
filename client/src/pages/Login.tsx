@@ -118,6 +118,20 @@ export default function Login() {
               )}
             </div>
 
+            <div className="flex justify-between items-center">
+              <label className="inline-flex items-center gap-2 text-sm text-muted-foreground select-none">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border border-slate-700 bg-slate-900 text-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-background"
+                />
+                Remember me
+              </label>
+
+              <Link href="/forgot-password" className="text-sm text-orange-500 hover:text-orange-400">
+                Forgot password?
+              </Link>
+            </div>
+
             {error && (
               <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md px-3 py-2">
                 {error}

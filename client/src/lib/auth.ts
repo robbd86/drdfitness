@@ -12,6 +12,14 @@ type MeResponse = {
   user: SafeUser | null;
 };
 
+type ForgotPasswordResponse = {
+  message: string;
+};
+
+type ResetPasswordResponse = {
+  message: string;
+};
+
 function apiBase(): string {
   const base = (import.meta as any).env?.VITE_API_URL as string | undefined;
   return (base || "").replace(/\/$/, "");
@@ -106,4 +114,20 @@ export async function getCurrentUser(): Promise<SafeUser | null> {
 // Backwards-compatible alias for older code.
 export async function getMe(): Promise<SafeUser | null> {
   return getCurrentUser();
+}
+
+export async function requestPasswordReset(email: string): Promise<string> {
+  const data = await request<ForgotPasswordResponse>("/api/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+  return data.message;
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<string> {
+  const data = await request<ResetPasswordResponse>("/api/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ token, newPassword }),
+  });
+  return data.message;
 }

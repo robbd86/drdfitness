@@ -3,9 +3,9 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 
 const resolvePort = () => {
-  const envPort = process.env.PORT ?? process.env.CLIENT_PORT ?? process.env.REPL_PORT;
-  const port = envPort ? Number(envPort) : 5000;
-  return Number.isInteger(port) && port > 0 ? port : 5000;
+  const envPort = process.env.CLIENT_PORT ?? process.env.REPL_PORT;
+  const port = envPort ? Number(envPort) : 5173;
+  return Number.isInteger(port) && port > 0 ? port : 5173;
 };
 
 const CLIENT_PORT = resolvePort();
