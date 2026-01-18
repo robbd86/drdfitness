@@ -16,10 +16,42 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [touched, setTouched] = useState({ email: false, password: false });
+  const [errors, setErrors] = useState({ email: "", password: "" });
+
+  const validateEmail = (value: string): string => {
+    const trimmed = value.trim();
+    if (!trimmed) return "Email is required";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return "Enter a valid email";
+    return "";
+  };
+
+  const validatePassword = (value: string): string => {
+    if (!value) return "Password is required";
+    if (value.length < 8) return "Password must be at least 8 characters";
+    return "";
+  };
+
+  const handleBlur = (field: "email" | "password") => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+
+    const message = field === "email" ? validateEmail(email) : validatePassword(password);
+    setErrors((prev) => ({ ...prev, [field]: message }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    const emailError = validateEmail(email);
+    const passwordError = validatePassword(password);
+
+    if (emailError || passwordError) {
+      setTouched({ email: true, password: true });
+      setErrors({ email: emailError, password: passwordError });
+      return;
+    }
+
     setIsLoading(true);
     try {
       await authApi.login(email, password);
@@ -39,18 +71,28 @@ export default function Login() {
           <h1 className="text-2xl font-bold font-display mb-2">Login</h1>
           <p className="text-sm text-muted-foreground mb-6">Sign in to access your workouts.</p>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <div>
               <label className="text-sm font-medium">Email</label>
               <Input
+                id="email"
+                name="email"
                 type="email"
                 autoComplete="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onBlur={() => handleBlur("email")}
                 placeholder="you@example.com"
+                aria-invalid={touched.email && Boolean(errors.email)}
+                aria-describedby={touched.email && errors.email ? "email-error" : undefined}
                 disabled={isLoading}
               />
+              {touched.email && errors.email && (
+                <p id="email-error" role="alert" className="mt-1 text-sm text-destructive">
+                  {errors.email}
+                </p>
+              )}
             </div>
 
             <div>
@@ -62,10 +104,18 @@ export default function Login() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onBlur={() => handleBlur("password")}
                 className=""
                 placeholder="••••••••"
+                ariaInvalid={touched.password && Boolean(errors.password)}
+                ariaDescribedBy={touched.password && errors.password ? "password-error" : undefined}
                 disabled={isLoading}
               />
+              {touched.password && errors.password && (
+                <p id="password-error" role="alert" className="mt-1 text-sm text-destructive">
+                  {errors.password}
+                </p>
+              )}
             </div>
 
             {error && (

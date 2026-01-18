@@ -7,12 +7,6 @@ import { PasswordInput } from "../components/PasswordInput";
 import { LoadingButton } from "../components/LoadingButton";
 import { useAuth } from "@/context/AuthContext";
 
-type FieldErrors = {
-  email?: string;
-  password?: string;
-  confirmPassword?: string;
-};
-
 export default function Register() {
   const [, setLocation] = useLocation();
   const { refresh } = useAuth();
@@ -22,33 +16,51 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [touched, setTouched] = useState({ email: false, password: false, confirmPassword: false });
+  const [errors, setErrors] = useState({ email: "", password: "", confirmPassword: "" });
 
-  const fieldErrors = useMemo((): FieldErrors => {
-    const errors: FieldErrors = {};
+  const validateEmail = (value: string): string => {
+    const trimmed = value.trim();
+    if (!trimmed) return "Email is required";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return "Enter a valid email";
+    return "";
+  };
 
-    const trimmedEmail = email.trim();
-    if (!trimmedEmail) {
-      errors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-      errors.email = "Enter a valid email";
-    }
+  const validatePassword = (value: string): string => {
+    if (!value) return "Password is required";
+    if (value.length < 8) return "Password must be at least 8 characters";
+    return "";
+  };
 
-    if (!password) {
-      errors.password = "Password is required";
-    } else if (password.length < 8) {
-      errors.password = "Password must be at least 8 characters";
-    }
+  const validateConfirmPassword = (value: string, passwordValue: string): string => {
+    if (!value) return "Confirm your password";
+    if (value !== passwordValue) return "Passwords do not match";
+    return "";
+  };
 
-    if (!confirmPassword) {
-      errors.confirmPassword = "Confirm your password";
-    } else if (confirmPassword !== password) {
-      errors.confirmPassword = "Passwords do not match";
-    }
+  const validateAll = () => {
+    return {
+      email: validateEmail(email),
+      password: validatePassword(password),
+      confirmPassword: validateConfirmPassword(confirmPassword, password),
+    };
+  };
 
-    return errors;
-  }, [email, password, confirmPassword]);
+  const handleBlur = (field: "email" | "password" | "confirmPassword") => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
 
-  const canSubmit = Object.keys(fieldErrors).length === 0 && !isLoading;
+    const message =
+      field === "email"
+        ? validateEmail(email)
+        : field === "password"
+          ? validatePassword(password)
+          : validateConfirmPassword(confirmPassword, password);
+
+    setErrors((prev) => ({ ...prev, [field]: message }));
+  };
+
+  const currentValidation = useMemo(() => validateAll(), [email, password, confirmPassword]);
+  const canSubmit = Object.values(currentValidation).every((message) => !message) && !isLoading;
 
   const extractErrorMessage = (status: number, body: unknown): string => {
     const statusSuffix = `(${status})`;
@@ -116,7 +128,13 @@ export default function Register() {
     e.preventDefault();
     setFormError(null);
 
-    if (!canSubmit) return;
+    const nextErrors = validateAll();
+    const hasErrors = Object.values(nextErrors).some((message) => Boolean(message));
+    if (hasErrors) {
+      setTouched({ email: true, password: true, confirmPassword: true });
+      setErrors(nextErrors);
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -139,18 +157,28 @@ export default function Register() {
           <h1 className="text-2xl font-bold font-display mb-2">Register</h1>
           <p className="text-sm text-muted-foreground mb-6">Create an account to save your workouts.</p>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <div>
               <label className="text-sm font-medium">Email</label>
               <Input
+                id="email"
+                name="email"
                 type="email"
                 autoComplete="email"
+                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onBlur={() => handleBlur("email")}
                 placeholder="you@example.com"
+                aria-invalid={touched.email && Boolean(errors.email)}
+                aria-describedby={touched.email && errors.email ? "register-email-error" : undefined}
                 disabled={isLoading}
               />
-              {fieldErrors.email && <p className="mt-1 text-sm text-destructive">{fieldErrors.email}</p>}
+              {touched.email && errors.email && (
+                <p id="register-email-error" role="alert" className="mt-1 text-sm text-destructive">
+                  {errors.email}
+                </p>
+              )}
             </div>
 
             <div>
@@ -162,11 +190,18 @@ export default function Register() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onBlur={() => handleBlur("password")}
                 className=""
                 placeholder="••••••••"
+                ariaInvalid={touched.password && Boolean(errors.password)}
+                ariaDescribedBy={touched.password && errors.password ? "register-password-error" : undefined}
                 disabled={isLoading}
               />
-              {fieldErrors.password && <p className="mt-1 text-sm text-destructive">{fieldErrors.password}</p>}
+              {touched.password && errors.password && (
+                <p id="register-password-error" role="alert" className="mt-1 text-sm text-destructive">
+                  {errors.password}
+                </p>
+              )}
             </div>
 
             <div>
@@ -178,12 +213,23 @@ export default function Register() {
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
+                onBlur={() => handleBlur("confirmPassword")}
                 className=""
                 placeholder="••••••••"
+                ariaInvalid={touched.confirmPassword && Boolean(errors.confirmPassword)}
+                ariaDescribedBy={
+                  touched.confirmPassword && errors.confirmPassword ? "register-confirm-password-error" : undefined
+                }
                 disabled={isLoading}
               />
-              {fieldErrors.confirmPassword && (
-                <p className="mt-1 text-sm text-destructive">{fieldErrors.confirmPassword}</p>
+              {touched.confirmPassword && errors.confirmPassword && (
+                <p
+                  id="register-confirm-password-error"
+                  role="alert"
+                  className="mt-1 text-sm text-destructive"
+                >
+                  {errors.confirmPassword}
+                </p>
               )}
             </div>
 
