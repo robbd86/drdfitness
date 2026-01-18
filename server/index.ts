@@ -22,6 +22,7 @@ const corsOptions: cors.CorsOptions = {
   origin: [
     "https://www.drdfitness.co.uk",
     "https://drdfitness.co.uk",
+    "https://app.drdfitness.co.uk",
     "https://drdfitness.vercel.app",
     "http://localhost:5173",
     "http://localhost:3000",
